@@ -31,5 +31,14 @@ jobs:
       - run: 'python -m pip install --require-hashes --only-binary :all: -r requirements/dev.txt'
       - run: 'python -m pip install --no-deps --no-build-isolation --no-index --only-binary :all: -e .'
       - run: pytest -q --cov=zerotrace --cov-report=xml
+      # Say it out loud when nothing is analysed. A green "sonar / analyze" that quietly did
+      # no analysis is worse than a missing check: it reads as "quality gate passed".
+      - name: No token, no analysis
+        if: env.SONAR_TOKEN == ''
+        run: |
+          echo "::warning::SONAR_TOKEN is not set, so nothing was analysed. Add it with" \
+               "\`gh secret set SONAR_TOKEN --repo $GITHUB_REPOSITORY\` after binding this" \
+               "repository in SonarQube Cloud."
+          echo "SONAR_TOKEN missing - this run analysed nothing." >> "$GITHUB_STEP_SUMMARY"
       - uses: SonarSource/sonarqube-scan-action@ba9859eae8dd6bd29e412f25ddbbef3d032000f4 # v8
         if: env.SONAR_TOKEN != ''    # no-op until the secret is configured

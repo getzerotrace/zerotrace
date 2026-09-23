@@ -20,3 +20,10 @@ updates:
       interval: weekly
     commit-message:
       prefix: "chore"
+    ignore:
+      # A lock is a whole resolved graph, and Dependabot bumps one pin at a time. filelock 4
+      # is the case that proved it: virtualenv pins filelock<4, so the bump made every
+      # `pip install --require-hashes` in CI fail with ResolutionImpossible. It will move on
+      # its own the next time `python scripts/lock_deps.py --upgrade` re-resolves everything.
+      - dependency-name: filelock
+        versions: ["4.x"]

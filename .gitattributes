@@ -1,0 +1,6 @@
+# Normalize line endings so hooks behave the same on every OS.
+* text=auto eol=lf
+*.png binary
+*.gguf binary
+# Keep fixtures out of language stats and mark them generated.
+tests/fixtures/** linguist-generated=true

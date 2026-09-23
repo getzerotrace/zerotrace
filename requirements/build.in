@@ -1,0 +1,5 @@
+# The build backend and what it needs, installed ahead of time: installs run with
+# --no-build-isolation, so nothing unpinned is fetched while building the project.
+hatchling
+editables  # hatchling builds editable (pip install -e) wheels with it
+build

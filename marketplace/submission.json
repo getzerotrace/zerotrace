@@ -1,0 +1,13 @@
+{
+  "name": "zerotrace",
+  "version": "0.2.0",
+  "kind": "skill",
+  "title": "ZeroTrace — secret & PII guardrail for commits and AI agents",
+  "summary": "Blocks secrets and PII at commit time in every repo on a machine, and sanitises AI-agent payloads at runtime. Deterministic first; a local model only settles ambiguous cases and never sees a value.",
+  "owner": {"team": "BMW TechWorks India"},
+  "license": "Apache-2.0",
+  "repository": "https://github.com/getzerotrace/zerotrace",
+  "artifact": {"type": "git-subdir", "path": "skill", "manifest": "skill/skill.json"},
+  "support": {"issues": "GitHub issues", "security": "SECURITY.md (private vulnerability reporting)"},
+  "tags": ["security", "secrets", "pii", "sdlc", "ai-guardrail"]
+}

@@ -1,0 +1,2 @@
+# PyInstaller, for the single-file release binaries (release.yml, zerotrace.spec).
+pyinstaller

@@ -1,0 +1,34 @@
+# gitleaks configuration: the default rules, plus the few things in this repository that look
+# like credentials and are not.
+#
+# This replaces a .gitleaksignore of commit fingerprints. Fingerprints are `<commit>:<path>:
+# <rule>:<line>`, so every one of them went stale the moment history was rewritten to purge
+# internal documents - the same content, a new SHA, a "new" leak. An allowlist keyed on what
+# the thing IS survives that.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Sample values and stored hashes that belong in this repository"
+
+paths = [
+  # detect-secrets' baseline: SHA-1 fingerprints of known findings, never the findings. It is
+  # what lets an existing repository adopt ZeroTrace without a wall of noise.
+  '''^\.secrets\.baseline$''',
+  # This file, and anything explaining a finding, will quote patterns by their nature.
+  '''^\.gitleaks\.toml$''',
+  # Rendered demo repositories carry deliberately fake credentials (demo/render_fixtures.py
+  # builds them at run time); the fixtures they come from are placeholders by design.
+  '''^demo/fixtures/''',
+  # The original scaffold's demo script, deleted in v0.2.0 and still in history. Its
+  # "ambiguous token" was invented to give the model something to judge.
+  '''^demo/setup_demo_repo\.ps1$''',
+]
+
+regexes = [
+  # The sample finding `zerotrace ui` draws so a person can check their terminal, and the
+  # tests that assert it is MASKED in every rendering. It spells out the word EXAMPLE three
+  # times; a test that proves a value never reaches the screen has to name that value.
+  '''EXAMPLEEXAMPLEEXAMPLE''',
+]

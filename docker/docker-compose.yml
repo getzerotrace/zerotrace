@@ -1,0 +1,51 @@
+# Local inference for ZeroTrace's AI tie-break (Qwen2.5-Coder 3B via Ollama).
+#
+#   zerotrace model up        # what the installer runs; starts this file and pulls the model
+#   docker compose -f docker/docker-compose.yml up -d     # the same thing, by hand
+#
+# Only redacted *shape features* are ever sent to it; see docs/AI_CLASSIFIER.md.
+# On macOS, Docker has no Metal GPU, so native Ollama (`brew install ollama`) is several
+# times faster. On Windows/Linux with an NVIDIA GPU, uncomment the `deploy` block below.
+#
+# This file ships inside the wheel (`zerotrace/docker/`), so `zerotrace model up` works on a
+# machine that installed from a release and has no clone. `zerotrace/modelhost.py` reads the
+# image reference out of it - there is no second copy of the pin to keep in step.
+name: zerotrace
+
+services:
+  ollama:
+    # Pinned to a version AND its manifest digest: `latest` silently changes what runs the
+    # classifier, and the digest is what makes a pull reproducible. Dependabot raises a PR
+    # when a newer version appears (see .github/dependabot.yml).
+    image: ollama/ollama:0.34.3@sha256:7ab595e4ead391f6818c7215297781282babe0701f6d9a9f8862ac591360a58b
+    container_name: zerotrace-ollama
+    ports:
+      - "127.0.0.1:11434:11434"   # bind to loopback only: never expose the model on the LAN
+    volumes:
+      - ollama-data:/root/.ollama
+      - ./ollama-entrypoint.sh:/entrypoint.sh:ro
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    environment:
+      - ZEROTRACE_MODEL=qwen2.5-coder:3b-instruct-q4_K_M
+      - OLLAMA_KEEP_ALIVE=30m       # keep the model in RAM between commits (no cold loads)
+      - OLLAMA_NUM_PARALLEL=4       # ZeroTrace classifies MEDIUM findings concurrently
+    # The container serves one local port and writes to one volume; it never needs to gain
+    # privileges on the way there.
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+volumes:
+  ollama-data:

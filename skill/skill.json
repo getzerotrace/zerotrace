@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "zerotrace",
+  "version": "0.2.0",
+  "kind": "skill",
+  "title": "ZeroTrace — secret & PII guardrail",
+  "summary": "Scan staged changes (or an AI-agent payload) for secrets and PII, explain each risk, and propose a human-approved fix. Local-first: no value leaves the machine.",
+  "owner": {
+    "team": "BMW TechWorks India",
+    "contact": "see SECURITY.md"
+  },
+  "license": "Apache-2.0",
+  "entrypoint": {
+    "type": "cli",
+    "command": "zerotrace",
+    "install": "pipx install zerotrace && zerotrace install --global"
+  },
+  "commands": [
+    {"name": "scan", "usage": "zerotrace scan --staged --format json", "description": "Findings for the staged diff, as fingerprints (never values)."},
+    {"name": "gateway", "usage": "zerotrace gateway < payload", "description": "Sanitize an agent/MCP/RAG payload: masks secrets and PII, neutralises prompt injection."},
+    {"name": "doctor", "usage": "zerotrace doctor", "description": "Check the install, config layers and model endpoint."}
+  ],
+  "capabilities": ["secret-detection", "pii-detection", "prompt-injection-defence", "git-hooks"],
+  "requires": {"python": ">=3.11", "git": ">=2.28"},
+  "network": "none by default; an optional local or company-hosted model endpoint",
+  "tags": ["security", "secrets", "pii", "pre-commit", "sdlc"]
+}

@@ -1,0 +1,6 @@
+# Hygiene hooks for developing THIS repo. ZeroTrace itself runs via `zerotrace install --global`
+# (the global hook also runs this file for you, since core.hooksPath blocks `pre-commit install`).
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks: [{id: end-of-file-fixer}, {id: trailing-whitespace}, {id: check-yaml}]

@@ -1,0 +1,33 @@
+# ZeroTrace policy for this repo (checked in, reviewed like code).
+# Layers: built-in defaults <- org policy (/etc/zerotrace/policy.yml) <- ~/.zerotrace/config.yml <- this file.
+version: 1
+enabled: true
+model:
+  enabled: true
+  runtime: ollama              # ollama | openai (vLLM / gateways / AWS-hosted) | off
+  name: qwen2.5-coder:3b-instruct-q4_K_M
+  endpoint: http://localhost:11434
+  # Remote endpoints (e.g. the future AWS inference service) need BOTH of these:
+  # allow_remote: true         # and an https:// endpoint; only redacted features are sent
+  # auth_env: ZEROTRACE_MODEL_TOKEN
+  digest: ""                   # pin the served model: `zerotrace doctor --pin-model`
+  timeout_seconds: 150         # headroom over the measured ~106 s p50 on CPU-only Docker
+                                # Docker Desktop (no GPU passthrough): p50 105.8s / p95 130.4s
+                                # for a real classifier call. See docs/AI_CLASSIFIER.md
+                                # "Measured results". Lower this if your model endpoint is
+                                # GPU-backed or hosted (docs/AWS_INFERENCE.md) - measure first.
+  keep_alive: 30m
+  can_escalate: true           # REAL_SECRET verdict (>= 0.8) may raise MEDIUM -> BLOCK
+policy:
+  block_severity: [critical, high]
+  warn_severity: [medium]
+  pii:
+    locales: [en, en_IN]       # Aadhaar (Verhoeff) / PAN recognizers
+    # Employee domains, which make a staff address HIGH instead of MEDIUM. Empty here on
+    # purpose: a company's domain list is its own data, so a fleet sets it in the org policy
+    # (deploy/policy.example.yml), not in a public repository.
+    internal_domains: []
+    action_in_tests: replace_synthetic
+    action_in_config: env_reference
+exceptions:
+  ttl_days: 30                 # time-bound; re-review required after expiry

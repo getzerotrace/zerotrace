@@ -1,0 +1,7 @@
+# The demo repo's own policy. `internal_domains` is what turns an employee address into a
+# HIGH finding - ZeroTrace ships the list empty, because which domains belong to a company is
+# that company's data (deploy/policy.example.yml shows where a fleet sets it).
+version: 1
+policy:
+  pii:
+    internal_domains: [acme-corp.internal]

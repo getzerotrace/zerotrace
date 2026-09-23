@@ -1,0 +1,34 @@
+# Sample org-wide ZeroTrace policy (deploy/policy.example.yml).
+#
+# Copy to the org policy path and lock the keys your fleet must not weaken:
+#   Linux/macOS: /etc/zerotrace/policy.yml  (or /Library/Application Support/zerotrace/policy.yml)
+#   Windows:     %ProgramData%\zerotrace\policy.yml
+#   Override the path on any OS with the ZEROTRACE_POLICY env var.
+#
+# Layer order is: built-in defaults <- this org policy <- ~/.zerotrace/config.yml <- repo
+# .zerotrace.yml. Keys listed under `locked` win over every layer below this one, so a
+# `critical` finding or a redirected model endpoint can never be configured away by a repo
+# or a developer. See docs/DEPLOYMENT.md §3.
+
+locked: [enabled, policy.block_severity, model.endpoint, model.allow_remote]
+
+enabled: true
+
+policy:
+  block_severity: [critical, high]
+  pii:
+    # Your organisation's employee domains. An address at one of these is a staff identity,
+    # which is worth more to an attacker than a generic email, so it is graded HIGH instead of
+    # MEDIUM. ZeroTrace ships this list empty on purpose: which domains are yours is your data,
+    # not something a security tool should carry in its source.
+    internal_domains: [acme-corp.internal, mail.acme-corp.internal]
+
+model:
+  runtime: openai                       # or "ollama" for per-laptop local inference
+  endpoint: https://zerotrace-inference.internal.example
+  allow_remote: true                    # required, plus https://, for any non-loopback endpoint
+  auth_env: ZEROTRACE_MODEL_TOKEN        # bearer token read from this env var, never from yml
+  digest: ""                            # pin with: zerotrace doctor --pin-model
+
+rules:
+  extra: [/etc/zerotrace/rules-acme.yml]  # internal token formats, employee-ID patterns

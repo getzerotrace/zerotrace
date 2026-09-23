@@ -1,0 +1,266 @@
+# ZeroTrace provider rule pack. Deterministic, high-confidence formats -> BLOCK.
+#
+# Fields:
+#   id           unique rule id (shown to the developer, used in fingerprints)
+#   title        human name
+#   severity     critical | high | medium | low
+#   keywords     lowercase substrings; the regex only runs on lines containing one (fast path)
+#   regex        Python regex
+#   secret_group group holding the value to redact/replace (default 0 = whole match)
+#   check_group  group used for placeholder/entropy checks (default = secret_group)
+#   min_entropy  optional Shannon-entropy floor for the checked value
+#   env_name     suggested environment variable for the remediation
+#   explain      why this matters (shown in the terminal)
+#
+# Org-specific packs use the same format and are added via `rules.extra` in policy.
+
+rules:
+  - id: aws-access-key-id
+    title: AWS access key ID
+    severity: critical
+    keywords: [akia, asia, abia, acca]
+    regex: '\b((?:AKIA|ASIA|ABIA|ACCA)[A-Z2-7]{16})\b'
+    secret_group: 1
+    env_name: AWS_ACCESS_KEY_ID
+    explain: AWS access keys grant programmatic access to cloud resources. Once in git history they must be revoked in IAM, not just deleted.
+
+  - id: aws-secret-access-key
+    title: AWS secret access key
+    severity: critical
+    keywords: [aws]
+    regex: '(?i)aws.{0,25}?(?:secret|sak|private).{0,20}?[''"=:\s]+([A-Za-z0-9/+]{40})(?![A-Za-z0-9/+])'
+    secret_group: 1
+    min_entropy: 4.0
+    env_name: AWS_SECRET_ACCESS_KEY
+    explain: The AWS secret key is the signing half of an access key pair and gives full use of that IAM identity.
+
+  - id: github-token
+    title: GitHub token
+    severity: critical
+    keywords: [ghp_, gho_, ghu_, ghs_, ghr_]
+    regex: '\b(gh[pousr]_[A-Za-z0-9]{36,255})\b'
+    secret_group: 1
+    env_name: GITHUB_TOKEN
+    explain: GitHub tokens can read and push code, packages and org data as the issuing user or app.
+
+  - id: github-fine-grained-pat
+    title: GitHub fine-grained personal access token
+    severity: critical
+    keywords: [github_pat_]
+    regex: '\b(github_pat_[A-Za-z0-9_]{60,255})\b'
+    secret_group: 1
+    env_name: GITHUB_TOKEN
+    explain: Fine-grained PATs act as the user on the repositories they were scoped to.
+
+  - id: gitlab-pat
+    title: GitLab access token
+    severity: critical
+    keywords: [glpat-, gldt-, glptt-, glrt-]
+    regex: '\b((?:glpat|gldt|glptt|glrt)-[A-Za-z0-9_\-]{20,})\b'
+    secret_group: 1
+    env_name: GITLAB_TOKEN
+    explain: GitLab tokens grant API and repository access as the owning user, deploy key or runner.
+
+  - id: openai-api-key
+    title: OpenAI API key
+    severity: critical
+    keywords: [sk-]
+    regex: '\b(sk-(?:proj|svcacct|admin)-[A-Za-z0-9_\-]{40,}|sk-[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20})(?![A-Za-z0-9_\-])'
+    secret_group: 1
+    env_name: OPENAI_API_KEY
+    explain: OpenAI keys are billed per use and can read organisation data and files; leaked keys are abused within minutes.
+
+  - id: anthropic-api-key
+    title: Anthropic API key
+    severity: critical
+    keywords: [sk-ant-]
+    regex: '\b(sk-ant-[a-z]{2,10}\d{0,3}-[A-Za-z0-9_\-]{40,})(?![A-Za-z0-9_\-])'
+    secret_group: 1
+    env_name: ANTHROPIC_API_KEY
+    explain: Anthropic API keys are billed per use and expose the workspace they belong to.
+
+  - id: slack-token
+    title: Slack token
+    severity: critical
+    keywords: [xoxb-, xoxa-, xoxp-, xoxr-, xoxs-, xoxe-]
+    regex: '\b(xox[abeprs]-(?:\d+-)?[0-9A-Za-z\-]{10,})\b'
+    secret_group: 1
+    env_name: SLACK_TOKEN
+    explain: Slack tokens can read channels and DMs and post as the bot or user.
+
+  - id: slack-webhook
+    title: Slack incoming webhook URL
+    severity: high
+    keywords: [hooks.slack.com]
+    regex: '(https://hooks\.slack\.com/(?:services|workflows)/[A-Za-z0-9/_\-]{20,})'
+    secret_group: 1
+    env_name: SLACK_WEBHOOK_URL
+    explain: Anyone holding a webhook URL can post messages into the channel, which is a common phishing vector.
+
+  - id: stripe-live-key
+    title: Stripe live secret or restricted key
+    severity: critical
+    keywords: [sk_live_, rk_live_]
+    regex: '\b((?:sk|rk)_live_[0-9A-Za-z]{20,247})\b'
+    secret_group: 1
+    env_name: STRIPE_API_KEY
+    explain: A live Stripe secret key can issue refunds, read customer and payment data and move money.
+
+  - id: stripe-live-key-base64
+    title: Stripe live key, base64-obscured
+    severity: critical
+    # The stable middle chars of base64("sk_live_"/"rk_live_") at each of the 3 possible byte
+    # alignments (surrounding bytes shift the boundary chars, so those are left out).
+    keywords: [c2tfbgl2zv, nrx2xpdmvf, za19saxzlx, cmtfbgl2zv, jrx2xpdmvf, ya19saxzlx]
+    regex: '\b((?:c2tfbGl2ZV|NrX2xpdmVf|za19saXZlX|cmtfbGl2ZV|JrX2xpdmVf|ya19saXZlX)[A-Za-z0-9+/]{8,}={0,2})'
+    secret_group: 1
+    env_name: STRIPE_API_KEY
+    explain: A Stripe live key appears base64-encoded rather than in plaintext. Encoding it does not
+      change what it grants; decode and rotate it like any other exposed live key.
+
+  - id: stripe-test-key
+    title: Stripe test secret key
+    severity: medium
+    keywords: [sk_test_, rk_test_]
+    regex: '\b((?:sk|rk)_test_[0-9A-Za-z]{20,247})\b'
+    secret_group: 1
+    env_name: STRIPE_API_KEY
+    explain: Test-mode keys don't move money, but they expose your Stripe account's test data and configuration.
+
+  - id: google-api-key
+    title: Google API key
+    severity: high
+    keywords: [aiza]
+    regex: '\b(AIza[0-9A-Za-z\-_]{35})(?![0-9A-Za-z\-_])'
+    secret_group: 1
+    env_name: GOOGLE_API_KEY
+    explain: Google API keys are billed to your project, and unrestricted keys can call any enabled API.
+
+  - id: gcp-service-account-key-id
+    title: GCP service-account key file
+    severity: critical
+    keywords: [private_key_id]
+    regex: '"private_key_id"\s*:\s*"([a-f0-9]{40})"'
+    secret_group: 1
+    env_name: GOOGLE_APPLICATION_CREDENTIALS
+    explain: This is a downloaded service-account key. It authenticates as that service account until deleted in IAM.
+
+  - id: azure-storage-account-key
+    title: Azure storage account key / connection string
+    severity: critical
+    keywords: [accountkey=]
+    regex: '(?i)AccountKey=([A-Za-z0-9+/]{86}==)'
+    secret_group: 1
+    env_name: AZURE_STORAGE_CONNECTION_STRING
+    explain: Storage account keys give full read/write/delete on every container in the account.
+
+  - id: azure-sas-token
+    title: Azure shared access signature
+    severity: high
+    keywords: [sig=]
+    regex: '(?i)[?&]sv=\d{4}-\d{2}-\d{2}[^\s''"]*?[?&]sig=([A-Za-z0-9%+/=]{30,})'
+    secret_group: 1
+    env_name: AZURE_SAS_TOKEN
+    explain: A SAS URL is a bearer credential. Anyone with the link gets the permissions it encodes until it expires.
+
+  - id: huggingface-token
+    title: Hugging Face token
+    severity: high
+    keywords: [hf_]
+    regex: '\b(hf_[A-Za-z]{34,40})\b'
+    secret_group: 1
+    env_name: HF_TOKEN
+    explain: Hugging Face tokens can read private models and datasets and, with write scope, publish over them.
+
+  - id: databricks-token
+    title: Databricks personal access token
+    severity: high
+    keywords: [dapi]
+    regex: '\b(dapi[a-f0-9]{32}(?:-\d)?)\b'
+    secret_group: 1
+    env_name: DATABRICKS_TOKEN
+    explain: Databricks PATs run jobs and read data in the workspace as the user.
+
+  - id: npm-access-token
+    title: npm access token
+    severity: high
+    keywords: [npm_]
+    regex: '\b(npm_[A-Za-z0-9]{36})\b'
+    secret_group: 1
+    env_name: NPM_TOKEN
+    explain: npm tokens can publish packages under your scope, which makes them a supply-chain risk.
+
+  - id: docker-hub-pat
+    title: Docker Hub personal access token
+    severity: high
+    keywords: [dckr_pat_]
+    regex: '\b(dckr_pat_[A-Za-z0-9_\-]{27,})\b'
+    secret_group: 1
+    env_name: DOCKERHUB_TOKEN
+    explain: Docker Hub tokens can push images, so a leak lets someone replace your images.
+
+  - id: hashicorp-vault-token
+    title: HashiCorp Vault token
+    severity: critical
+    keywords: [hvs., hvb.]
+    regex: '\b(hv[sb]\.[A-Za-z0-9_\-]{24,})\b'
+    secret_group: 1
+    env_name: VAULT_TOKEN
+    explain: A Vault token can read every secret its policies allow. It is the key to the other keys.
+
+  - id: digitalocean-token
+    title: DigitalOcean token
+    severity: high
+    keywords: [dop_v1_, doo_v1_]
+    regex: '\b(do[op]_v1_[a-f0-9]{64})\b'
+    secret_group: 1
+    env_name: DIGITALOCEAN_TOKEN
+    explain: DigitalOcean tokens control droplets, databases and DNS for the account.
+
+  - id: shopify-token
+    title: Shopify access token
+    severity: high
+    keywords: [shpat_, shpca_, shppa_, shpss_]
+    regex: '\b(shp(?:at|ca|pa|ss)_[a-fA-F0-9]{32})\b'
+    secret_group: 1
+    env_name: SHOPIFY_ACCESS_TOKEN
+    explain: Shopify tokens expose store orders, customers and payment configuration.
+
+  - id: age-secret-key
+    title: age encryption secret key
+    severity: critical
+    keywords: [age-secret-key-]
+    regex: '\b(AGE-SECRET-KEY-1[0-9A-Z]{58})\b'
+    secret_group: 1
+    env_name: AGE_SECRET_KEY
+    explain: This key decrypts everything encrypted to its public recipient, including sops or age secret files.
+
+  - id: connection-string-with-password
+    title: Connection string with embedded password
+    severity: high
+    keywords: ["://"]
+    regex: '((?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|redis|rediss|amqps?|mssql|sqlserver|oracle|cockroachdb|clickhouse|ftp|sftp|ldaps?|smtps?)://[^\s:/@''"]+:([^\s@''"/]{3,})@[^\s''"<>]+)'
+    secret_group: 1
+    check_group: 2
+    env_name: DATABASE_URL
+    explain: The URI embeds a live username and password. Anyone who can read the repo can connect to that database or broker.
+
+  - id: jdbc-password
+    title: JDBC URL with password
+    severity: high
+    keywords: [jdbc:]
+    regex: '(?i)(jdbc:[a-z0-9]+:[^\s''"]*?[;?&]password=([^;&\s''"]{3,})[^\s''"]*)'
+    secret_group: 1
+    check_group: 2
+    env_name: JDBC_URL
+    explain: The JDBC URL embeds a database password in clear text.
+
+  - id: authorization-header
+    title: Hardcoded Authorization header
+    severity: high
+    keywords: [authorization, bearer]
+    regex: '(?i)(?:authorization[''"]?\s*[:=,]\s*[''"]?(?:bearer|basic|token)\s+|[''"`]bearer\s+)([A-Za-z0-9\-._~+/]{20,}=*)'
+    secret_group: 1
+    min_entropy: 3.5
+    env_name: API_AUTH_TOKEN
+    explain: A bearer or basic credential is hardcoded into a request header, so every build and log that includes this code carries it.

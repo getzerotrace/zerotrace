@@ -1,0 +1,14 @@
+# Lets repos that already standardise on the pre-commit framework consume ZeroTrace:
+#   repos:
+#     - repo: https://github.com/<org>/zerotrace
+#       rev: v0.2.0
+#       hooks: [{ id: zerotrace }]
+# Most teams don't need this: `zerotrace install --global` covers every repo on the machine.
+- id: zerotrace
+  name: ZeroTrace secret & PII guardrail
+  entry: zerotrace run
+  language: python
+  pass_filenames: false   # ZeroTrace reads the staged diff itself (added lines only)
+  always_run: true
+  stages: [pre-commit]
+  require_serial: true

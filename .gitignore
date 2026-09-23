@@ -1,0 +1,61 @@
+# --- environment / secrets (never commit) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+id_rsa*
+secrets/
+credentials.json
+
+# --- local model artifacts (large + licensed; fetch via script) ---
+models/
+*.gguf
+*.bin
+
+# NOTE: .zerotrace-exceptions.json IS committed on purpose - an exception silences a
+# security control, so it belongs in a reviewed pull request (fingerprints only, no values).
+
+# --- ZeroTrace local state ---
+.zerotrace-cache/
+.zerotrace/
+
+# --- internal material (kept beside the repo, never in it) ---
+# The hackathon use-case document and the team plan name people and internal systems. They
+# live in ../zerotrace-internal/; these patterns stop a copy walking back in.
+*.pdf
+docs/TEAM_PLAN.md
+
+# --- editor / OS noise ---
+.DS_Store
+.idea/
+*.swp
+
+# --- python ---
+.venv/
+wheelhouse/
+__pycache__/
+*.pyc
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# NOTE: .secrets.baseline IS committed on purpose — it stores hashed
+# fingerprints, not plaintext, and is how known findings are suppressed.
+
+# SonarQube for IDE binding (contains the connection id, not a token)
+.sonarlint/
+coverage.xml
+.coverage
+htmlcov/
+
+# agent tooling installed locally by `npx skills add` (not part of the product)
+.agents/
+.claude/
+skills-lock.json
+NEXT_STEPS.md

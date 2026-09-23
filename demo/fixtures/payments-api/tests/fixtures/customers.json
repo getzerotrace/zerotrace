@@ -1,0 +1,5 @@
+{
+  "customer_email": "{{gen:internal_email}}",
+  "employee_id": "{{gen:qxid}}",
+  "note": "copied from a production support ticket"
+}

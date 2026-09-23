@@ -10,7 +10,15 @@ set -euo pipefail
 #    This runs as root on every managed Mac, so the download is strict: HTTPS only, including
 #    any redirect (--proto '=https'), TLS 1.2 or newer, and saved to a file first so a
 #    connection that drops half-way never runs a truncated script.
-INSTALLER_URL="https://raw.githubusercontent.com/getzerotrace/zerotrace/main/install.sh"
+# A pinned release, not the site and not main: a fleet rollout must install the version that
+# was tested, and must not change under the fleet because a release happened this morning.
+# Bump ZEROTRACE_VERSION deliberately, after testing that version on a pilot group.
+ZEROTRACE_VERSION="${ZEROTRACE_VERSION:-latest}"
+if [ "$ZEROTRACE_VERSION" = "latest" ]; then
+  INSTALLER_URL="https://github.com/getzerotrace/zerotrace/releases/latest/download/install.sh"
+else
+  INSTALLER_URL="https://github.com/getzerotrace/zerotrace/releases/download/${ZEROTRACE_VERSION}/install.sh"
+fi
 INSTALLER="$(mktemp)"
 trap 'rm -f "$INSTALLER"' EXIT
 curl --proto '=https' --tlsv1.2 -fsSL "$INSTALLER_URL" -o "$INSTALLER"

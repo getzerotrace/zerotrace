@@ -31,6 +31,11 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - End-to-end flows live in `tests/e2e/` and run on all three OSes in CI: install, re-install,
   uninstall, uninstall twice, a tampered wheel, a failed install rolling back, and every
   Docker state through a fake daemon.
+- A short install URL: `curl -fsSL https://getzerotrace.github.io/install.sh | bash` (and
+  `irm https://getzerotrace.github.io/install.ps1 | iex`). `.github/workflows/site.yml`
+  publishes the landing page (`site/index.html`) together with the newest release's stamped
+  installers, its `SHA256SUMS` and a `VERSION` file to the Pages repository, so the one-liner
+  always installs a released version rather than whatever is on `main`.
 
 ### Changed
 - Releases tag and publish themselves (`.github/workflows/release.yml`). Start one with the
@@ -55,6 +60,10 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Findings are listed in one order everywhere: what blocks before what only warns, and within
   each the most severe first (critical, high, medium, low), then file and line. The summary
   table, the panels under it, the full-screen reviewer and `scan --format json` all agree.
+- Fleet rollouts (`deploy/jamf-postinstall.sh`, `deploy/intune-install.ps1`) install from a
+  release asset, pinnable with `ZEROTRACE_VERSION`, instead of pulling `install.sh` from
+  `main`: a rollout must install the version that was tested and must not change underneath a
+  fleet because a release happened this morning.
 
 ### Removed
 - The hackathon use-case PDF and `docs/TEAM_PLAN.md` are no longer in the repository: both

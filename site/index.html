@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZeroTrace — secret &amp; PII guardrail for commits and AI agents</title>
+<meta name="description" content="Leave zero trace. A local-first guardrail that catches secrets and PII at commit time and fixes them before they ever reach git history.">
+<meta property="og:title" content="ZeroTrace">
+<meta property="og:description" content="Stop sensitive data before it leaves the developer's machine, in every repo, with one install.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://getzerotrace.github.io/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+<!--
+  One file, no build step, no external requests: this is served from GitHub Pages and has to
+  load on a locked-down corporate network, where a font CDN or an analytics script is exactly
+  what gets blocked. Everything below is inline on purpose.
+
+  The palette is the product's own accent (src/zerotrace/ui/theme.py): deep emerald #059669,
+  chosen so it stays readable on a light and a dark background and is never mistaken for the
+  green/amber/red a finding is reported in.
+-->
+<style>
+  :root {
+    --accent: #059669;
+    --accent-soft: #10b981;
+    --bg: #ffffff;
+    --bg-alt: #f6f8f7;
+    --fg: #16211d;
+    --fg-muted: #5c6b66;
+    --border: #dfe5e2;
+    --code-bg: #0f1a17;
+    --code-fg: #e6f2ed;
+    --radius: 10px;
+    --wrap: 68rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1412;
+      --bg-alt: #121c19;
+      --fg: #e8f0ec;
+      --fg-muted: #9bb0a8;
+      --border: #22302b;
+      --code-bg: #060b09;
+      --code-fg: #e6f2ed;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { width: 100%; max-width: var(--wrap); margin: 0 auto; padding: 0 1.25rem; }
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  header { border-bottom: 1px solid var(--border); }
+  .bar { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: .6rem; font-weight: 700; letter-spacing: -.01em; }
+  .brand .mark {
+    width: 1.9rem; height: 1.9rem; border-radius: 7px; background: var(--accent);
+    display: grid; place-items: center; color: #fff; font-size: .95rem; font-weight: 800;
+  }
+  nav { margin-left: auto; display: flex; gap: 1.25rem; flex-wrap: wrap; }
+  nav a { color: var(--fg-muted); text-decoration: none; font-size: .94rem; }
+  nav a:hover { color: var(--accent); }
+
+  .hero { padding: 4rem 0 3rem; }
+  .hero h1 { font-size: clamp(2.1rem, 5vw, 3.2rem); line-height: 1.1; margin: 0 0 1rem; letter-spacing: -.02em; }
+  .hero .lede { font-size: clamp(1.05rem, 2vw, 1.25rem); color: var(--fg-muted); max-width: 46rem; margin: 0 0 2rem; }
+  .pill {
+    display: inline-block; font-size: .8rem; font-weight: 600; letter-spacing: .02em;
+    color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    padding: .25rem .7rem; border-radius: 999px; margin-bottom: 1.25rem;
+  }
+
+  .install { display: grid; gap: .75rem; max-width: 52rem; }
+  .cmd {
+    display: flex; align-items: center; gap: .75rem; background: var(--code-bg); color: var(--code-fg);
+    border-radius: var(--radius); padding: .85rem 1rem; font-family: ui-monospace, SFMono-Regular,
+    "SF Mono", Menlo, Consolas, monospace; font-size: .92rem; overflow-x: auto;
+  }
+  .cmd .os { color: var(--accent-soft); font-weight: 700; flex: 0 0 auto; }
+  .cmd code { white-space: pre; }
+  .cmd button {
+    margin-left: auto; flex: 0 0 auto; background: transparent; color: var(--code-fg);
+    border: 1px solid #ffffff33; border-radius: 6px; padding: .3rem .6rem; font: inherit;
+    font-size: .8rem; cursor: pointer;
+  }
+  .cmd button:hover { border-color: var(--accent-soft); color: var(--accent-soft); }
+  .after { color: var(--fg-muted); font-size: .9rem; margin-top: .9rem; }
+
+  section { padding: 3.25rem 0; border-top: 1px solid var(--border); }
+  section h2 { font-size: 1.5rem; margin: 0 0 .5rem; letter-spacing: -.01em; }
+  section .sub { color: var(--fg-muted); margin: 0 0 2rem; max-width: 46rem; }
+
+  .cards { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+  .card { background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+  .card h3 { margin: 0 0 .4rem; font-size: 1.02rem; }
+  .card p { margin: 0; color: var(--fg-muted); font-size: .94rem; }
+
+  .steps { counter-reset: step; display: grid; gap: .75rem; margin: 0; padding: 0; list-style: none; }
+  .steps li { counter-increment: step; display: flex; gap: .85rem; align-items: baseline; }
+  .steps li::before {
+    content: counter(step); flex: 0 0 1.6rem; height: 1.6rem; border-radius: 50%;
+    background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent);
+    display: grid; place-items: center; font-size: .82rem; font-weight: 700;
+  }
+  .steps strong { font-weight: 650; }
+  .steps span { color: var(--fg-muted); }
+
+  footer { border-top: 1px solid var(--border); padding: 2.5rem 0 3.5rem; color: var(--fg-muted); font-size: .9rem; }
+  footer a { color: var(--fg-muted); }
+  footer a:hover { color: var(--accent); }
+  .foot { display: flex; gap: 1.25rem; flex-wrap: wrap; align-items: center; }
+  .foot .spacer { margin-left: auto; }
+  .note { font-size: .85rem; color: var(--fg-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <div class="brand"><span class="mark">Z</span> ZeroTrace</div>
+    <nav>
+      <a href="#install">Install</a>
+      <a href="#what">What it does</a>
+      <a href="#how">How it works</a>
+      <a href="https://github.com/getzerotrace/zerotrace">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <span class="pill">Local-first · nothing leaves your machine</span>
+    <h1>Leave zero trace.</h1>
+    <p class="lede">
+      A guardrail that catches secrets and personal data <strong>at commit time</strong> and fixes
+      them before they ever reach git history — in every repository on the machine, with one install.
+    </p>
+
+    <div class="install" id="install">
+      <div class="cmd">
+        <span class="os">macOS / Linux</span>
+        <code id="cmd-sh">curl -fsSL https://getzerotrace.github.io/install.sh | bash</code>
+        <button type="button" data-copy="cmd-sh">Copy</button>
+      </div>
+      <div class="cmd">
+        <span class="os">Windows</span>
+        <code id="cmd-ps">irm https://getzerotrace.github.io/install.ps1 | iex</code>
+        <button type="button" data-copy="cmd-ps">Copy</button>
+      </div>
+    </div>
+    <p class="after">
+      No pip, pipx or uv needed — it brings its own environment. Remove it again with
+      <code>zerotrace-uninstall</code>.
+    </p>
+  </div>
+
+  <section id="what">
+    <div class="wrap">
+      <h2>What it does</h2>
+      <p class="sub">TODO: your words here — this is the one paragraph a visitor actually reads.</p>
+      <div class="cards">
+        <div class="card">
+          <h3>Catches it before the commit</h3>
+          <p>Only the lines you are adding are inspected, so a scan costs a moment, not a coffee break.</p>
+        </div>
+        <div class="card">
+          <h3>Explains, then fixes</h3>
+          <p>Every finding says why it is risky and offers the fix — an environment lookup, a safe
+             placeholder, or unstaging the file — applied to the staged copy with your approval.</p>
+        </div>
+        <div class="card">
+          <h3>Never phones home</h3>
+          <p>Detection is offline. The optional local model only ever sees redacted shape features,
+             never a value, and it can never unblock a high-confidence secret.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <h2>How the install goes</h2>
+      <p class="sub">Six steps, and it tells you what it found at each one.</p>
+      <ol class="steps">
+        <li><strong>Checks this machine</strong> <span>— git, Python 3.11+, disk space.</span></li>
+        <li><strong>Creates its own environment</strong> <span>— never your system Python.</span></li>
+        <li><strong>Checks Docker</strong> <span>— installed? running? may this user use it?</span></li>
+        <li><strong>Installs the git hooks</strong> <span>— every repository, present and future.</span></li>
+        <li><strong>Prepares the local model</strong> <span>— optional; skip it with <code>--no-model</code>.</span></li>
+        <li><strong>Proves it works</strong> <span>— stages a fake credential and checks the commit is refused.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- TODO: more sections on request - screenshots/asciinema, the policy table, the AI gateway,
+       enterprise rollout (deploy/), FAQ. Keep each one inside <section><div class="wrap">. -->
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>Apache-2.0</span>
+    <a href="https://github.com/getzerotrace/zerotrace">Source</a>
+    <a href="https://github.com/getzerotrace/zerotrace/releases/latest">Releases</a>
+    <a href="https://github.com/getzerotrace/zerotrace/blob/main/docs/INSTALL.md">Install guide</a>
+    <span class="spacer note">Prefer to read before you run? The script is right
+      <a href="install.sh">here</a>.</span>
+  </div>
+</footer>
+
+<script>
+  // Progressive enhancement: without JavaScript the commands are still selectable text.
+  document.querySelectorAll("button[data-copy]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var text = document.getElementById(button.dataset.copy).textContent;
+      navigator.clipboard.writeText(text).then(function () {
+        var was = button.textContent;
+        button.textContent = "Copied";
+        setTimeout(function () { button.textContent = was; }, 1400);
+      });
+    });
+  });
+</script>
+</body>
+</html>

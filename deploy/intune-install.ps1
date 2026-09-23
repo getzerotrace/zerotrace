@@ -21,7 +21,7 @@ if (Test-Path $installer) {
     & $installer
 } else {
     (New-Object System.Net.WebClient).DownloadString(
-        "https://raw.githubusercontent.com/getzerotrace/zerotrace/main/install.ps1") | Invoke-Expression
+        "https://github.com/getzerotrace/zerotrace/releases/latest/download/install.ps1") | Invoke-Expression
 }
 
 # 2. Machine-wide git hook: every user's repos on this laptop are now protected.

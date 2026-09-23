@@ -12,7 +12,10 @@ updates:
   # security alerts and updates must cover them, not only the ranges in pyproject.toml. For a
   # full refresh (every pin, re-resolved together), run `python scripts/lock_deps.py --upgrade`.
   - package-ecosystem: pip
-    directories: ["/", "/requirements"]
+    # Only /requirements: that is where the pinned, hash-locked files live. Listing "/" as
+    # well produced a second, identical pull request for every bump - pyproject.toml carries
+    # ranges, and the locks are what an install actually resolves to.
+    directory: /requirements
     schedule:
       interval: weekly
     commit-message:

@@ -1,4 +1,4 @@
-# SonarQube: CI gate and the IDE extension
+# SonarQube: quality gate and the IDE extension
 
 ## In the editor (SonarQube for IDE, VS Code / VS Codium)
 
@@ -19,43 +19,34 @@ Useful commands: **SonarQube: Update all project bindings** after a profile chan
 Quality-gate conditions that are computed server-side: coverage on new code, duplicated lines,
 and the security-hotspot review ratio. Check those on SonarQube Cloud after a push.
 
-## Coverage
+## How this project is analysed
 
-The gate's default is **80% coverage on new code**, and coverage only exists if a report is
-uploaded. Generate one locally exactly as CI does:
+This project uses SonarQube Cloud's **Automatic Analysis**. Every push to `main` (and every pull
+request) is analysed automatically by SonarQube Cloud — there is no scanner in GitHub Actions and
+no `SONAR_TOKEN` to manage. Results appear on the project's SonarQube Cloud dashboard; the quality
+gate status is what you show when someone asks whether Sonar is passing.
+
+Automatic Analysis reads **`.sonarcloud.properties`** and ignores everything else. That file
+declares the sources, `sonar.tests=tests`, the Python versions and the exclusions, so the
+format-valid fake credentials in `tests/` and `demo/fixtures/` are not reported as leaks.
+
+### Coverage
+
+Automatic Analysis cannot run the test suite, so it never uploads coverage — the coverage
+condition on the quality gate simply has no data (it is not a failure). Coverage still runs in
+`ci.yml` for local visibility; generate the same report yourself with:
 
 ```bash
 pytest -q --cov=zerotrace --cov-report=xml --cov-report=term-missing
-# writes coverage.xml, which sonar.python.coverage.reportPaths points at
 ```
 
-Automatic Analysis cannot run our tests, so it never sees coverage. To send it, the project has
-to switch to CI-based analysis:
-
-1. SonarQube Cloud → project → **Administration → Analysis Method** → turn **Automatic Analysis**
-   off.
-2. GitHub repo → **Settings → Secrets and variables → Actions** → add `SONAR_TOKEN`
-   (SonarQube Cloud → **My Account → Security → Generate Token**).
-3. Uncomment `sonar.projectKey` / `sonar.organization` in `sonar-project.properties` with the
-   exact values from SonarQube Cloud → **Project Information**.
-4. Enable `.github/workflows/sonar.yml` (already committed; it runs the tests, produces
-   `coverage.xml` and calls the official scan action).
-
-Keep Automatic Analysis **or** the workflow, never both: two analyses of the same branch
-overwrite each other.
-
-## Which configuration file applies
-
-| Analysis | Reads | Notes |
-|---|---|---|
-| Automatic Analysis (the default today) | `.sonarcloud.properties` | ignores `sonar-project.properties` entirely |
-| CI scanner (`.github/workflows/sonar.yml`) | `sonar-project.properties` | also uploads `coverage.xml` |
-
-Both declare the same sources, `sonar.tests=tests`, the Python versions and the exclusions;
-change them together. Before `.sonarcloud.properties` existed, Automatic Analysis analysed
-`tests/` and `demo/fixtures/` as production code and warned that `sonar.tests` was not set.
-`.github` is listed in `sonar.sources` on purpose: once sources are set explicitly, the
-workflows are only analysed if they are named.
+> **If you later need coverage on the SonarQube dashboard**, switch to CI-based analysis instead:
+> turn **Automatic Analysis** off (SonarQube Cloud → **Administration → Analysis Method**), add a
+> `SONAR_TOKEN` secret, and add a workflow that runs the tests and calls
+> `SonarSource/sonarqube-scan-action` with a `sonar-project.properties` carrying `projectKey` /
+> `organization` and `sonar.python.coverage.reportPaths=coverage.xml`. Run **exactly one** method:
+> a CI scan while Automatic Analysis is on fails with *"You are running CI analysis while Automatic
+> Analysis is enabled."*
 
 ## Supply-chain rules (S8541, S8544)
 

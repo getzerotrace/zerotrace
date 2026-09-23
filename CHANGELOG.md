@@ -60,6 +60,10 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Findings are listed in one order everywhere: what blocks before what only warns, and within
   each the most severe first (critical, high, medium, low), then file and line. The summary
   table, the panels under it, the full-screen reviewer and `scan --format json` all agree.
+- The README is a front page again: the terminal logo, what it is, the one-line install, what
+  it catches, and where everything else lives. The commands, the fix menu, the full-screen
+  apps, the AI gateway and the demo moved to the new `docs/USING.md`; the install detail is in
+  `docs/INSTALL.md`, which now opens with the one-liner.
 - Fleet rollouts (`deploy/jamf-postinstall.sh`, `deploy/intune-install.ps1`) install from a
   release asset, pinnable with `ZEROTRACE_VERSION`, instead of pulling `install.sh` from
   `main`: a rollout must install the version that was tested and must not change underneath a

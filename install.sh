@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ZeroTrace installer - macOS, Linux, WSL and Git Bash.
 #
-#   install:    curl --proto '=https' --tlsv1.2 -fsSL https://getzerotrace.github.io/install.sh | bash
+#   install:    curl --proto '=https' --tlsv1.2 -fsSL https://getzerotrace.github.io/zerotrace/install.sh | bash
 #   uninstall:  zerotrace-uninstall        (or: ./install.sh --uninstall)
 #
 # What it does, in six steps: checks this machine, builds an environment that belongs to
@@ -73,7 +73,7 @@ usage() {
   cat <<'USAGE'
 ZeroTrace installer
 
-  curl --proto '=https' --tlsv1.2 -fsSL https://getzerotrace.github.io/install.sh | bash
+  curl --proto '=https' --tlsv1.2 -fsSL https://getzerotrace.github.io/zerotrace/install.sh | bash
 
 From a clone it installs that clone; otherwise the latest published release.
 

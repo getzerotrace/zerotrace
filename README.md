@@ -1,21 +1,10 @@
-```
-███▀██████████████████▀███
-██  ▀███████▀████████▀ ▀██
-██   ▀████▀    ▀████▀   ██
-██  ▀▄▄      ▄█▄   ▄█  ███
-███▄  ▀      ████ ▀▀  ▄███   █████  █████  ████   █████  █████  ████    ███   █████  █████
-█████       ██▀▀██  ▄█████      ██  ██     ██ ██  ██ ██    ██   ██ ██  ██ ██  ██     ██
-█████       █       ██████     ██   ████   ████   ██ ██    ██   ████   █████  ██     ████
-████▀    ▄    ▄▄▄   ▀█████    ██    ██     ██ ██  ██ ██    ██   ██ ██  ██ ██  ██     ██
-████▄    ▀    ▀▀     ▄████   █████  █████  ██ ██  █████    ██   ██ ██  ██ ██  █████  █████
-████       ▀▀█▄ ▄    █████
-████▄▄       █▀▀█  ▄▄█████
-█████▀       ▀  ▄▄ ▀██████
-██████▄     ▄██▀▀ ▄███████
-████████▄▄▄▄▄▄▄▄██████████
+<p align="center">
+  <img src="src/zerotrace/ui/assets/logo.png" alt="ZeroTrace" width="150">
+</p>
 
-secret & PII guardrail · no trace. no leaks. stays safe.
-```
+# ZeroTrace
+
+**secret & PII guardrail · no trace. no leaks. stays safe.**
 
 [![CI](https://github.com/getzerotrace/zerotrace/actions/workflows/ci.yml/badge.svg)](https://github.com/getzerotrace/zerotrace/actions/workflows/ci.yml) [![License: Apache-2.0](<https://img.shields.io/badge/License-Apache%202.0-blue.svg>)](LICENSE) [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 
@@ -30,11 +19,11 @@ only ever sees redacted shape features — never a value.
 ## Install
 
 ```bash
-curl -fsSL https://getzerotrace.github.io/install.sh | bash
+curl -fsSL https://getzerotrace.github.io/zerotrace/install.sh | bash
 ```
 
 ```powershell
-irm https://getzerotrace.github.io/install.ps1 | iex
+irm https://getzerotrace.github.io/zerotrace/install.ps1 | iex
 ```
 
 That is the whole install. No pip, pipx or uv first: it builds an environment of its own and

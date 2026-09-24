@@ -1,11 +1,11 @@
 # Installing ZeroTrace
 
 ```bash
-curl -fsSL https://getzerotrace.github.io/install.sh | bash     # macOS, Linux, WSL, Git Bash
+curl -fsSL https://getzerotrace.github.io/zerotrace/install.sh | bash     # macOS, Linux, WSL, Git Bash
 ```
 
 ```powershell
-irm https://getzerotrace.github.io/install.ps1 | iex            # Windows PowerShell
+irm https://getzerotrace.github.io/zerotrace/install.ps1 | iex            # Windows PowerShell
 ```
 
 That is the whole install: no pip, pipx or uv first, because the installer builds the
@@ -15,32 +15,26 @@ Nothing else on this page is required reading — it is here for the cases that 
 one line: which platforms are supported, what the six steps do, the options, air-gapped
 machines, Docker, and uninstalling.
 
-### The short install URL
+### The install URL
 
-`getzerotrace.github.io` is a GitHub Pages site served from the repository
-`getzerotrace/getzerotrace.github.io`, which is why the URL carries no repository name and no
-`raw.githubusercontent.com`. It is also reachable from corporate networks that allow
-`github.io` but block unknown domains — a bought domain would not be.
+`getzerotrace.github.io/zerotrace/` is this repository's own GitHub Pages site (**Settings →
+Pages → Deploy from a branch: `main`, `/`**). It serves the repository root, so `index.html`
+is the landing page and `install.sh` / `install.ps1` sit right beside it — nothing is copied
+by hand. Being a *project* page it carries the repository name in the path. It is still
+reachable from corporate networks that allow `github.io` but block unknown domains.
 
-The files it serves are not copies kept in step by hand. `.github/workflows/site.yml` in this
-repository publishes them on every `release: published`:
+The installers served from `main` **resolve and install the newest release at run time**, so
+`curl … | bash` installs a released version rather than the exact bytes of the script on
+`main`. To pin the exact bytes, or to verify a download, go straight to the release assets —
+`SHA256SUMS` sits beside them there:
 
-| Served as                       | Comes from                                                                                                                         |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `index.html`                  | `site/index.html` in this repository                                                                                             |
-| `install.sh`, `install.ps1` | the**newest release's** stamped installers, so the one-liner installs a released version rather than whatever is on `main` |
-| `SHA256SUMS`                  | that release's checksums, so a download can be verified                                                                            |
-| `VERSION`                     | which release the three files above came from                                                                                      |
+```bash
+curl -fsSL https://github.com/getzerotrace/zerotrace/releases/latest/download/install.sh | bash
+```
 
-One-time setup, if the site is ever rebuilt:
-
-1. Create the **public** repository `getzerotrace/getzerotrace.github.io` (Pages serves it at
-   the root of the org's domain; any other name would add a path segment).
-2. Create a fine-grained personal access token with **Contents: read and write on that
-   repository only**, and add it to this repository as the secret `SITE_DEPLOY_TOKEN`. A token
-   scoped to the site repository cannot touch the source.
-3. Run the `site` workflow once by hand (**Actions → site → Run workflow**). Before the first
-   release it publishes the installers from `main` and says so in the run summary.
+(`.github/workflows/site.yml` can additionally mirror the stamped release installers to a
+separate root domain — `getzerotrace/getzerotrace.github.io` with a `SITE_DEPLOY_TOKEN` — but
+that is optional; the project page above needs neither.)
 
 ### Other ways in
 
@@ -49,15 +43,15 @@ One-time setup, if the site is ever rebuilt:
 curl -fsSL https://github.com/getzerotrace/zerotrace/releases/latest/download/install.sh | bash
 
 # pinning the redirect as well as the scheme, for the cautious
-curl --proto '=https' --tlsv1.2 -fsSL https://getzerotrace.github.io/install.sh | bash
+curl --proto '=https' --tlsv1.2 -fsSL https://getzerotrace.github.io/zerotrace/install.sh | bash
 
 # you already have Python tooling and would rather manage it yourself
 pipx install zerotrace && zerotrace install --global && zerotrace doctor
 ```
 
 Reading the script before running it is always reasonable: it is the same file the one-liner
-fetches, served at [https://getzerotrace.github.io/install.sh](https://getzerotrace.github.io/install.sh), and `SHA256SUMS` beside it
-covers the release copy.
+fetches, served at [https://getzerotrace.github.io/zerotrace/install.sh](https://getzerotrace.github.io/zerotrace/install.sh). The release page carries
+`SHA256SUMS` beside the stamped installer if you want to verify a pinned copy.
 
 Fleet rollouts do not use the short URL. `deploy/jamf-postinstall.sh` and
 `deploy/intune-install.ps1` install from a **release** asset

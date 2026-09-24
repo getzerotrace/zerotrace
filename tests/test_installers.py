@@ -89,32 +89,6 @@ def test_the_powershell_installer_draws_the_real_mark():
     assert decoded == expected, "install.ps1 no longer matches ui/assets/mark.small.uni.txt"
 
 
-def test_the_readme_banner_is_the_installer_banner():
-    """The logo at the top of the README is the one people see when they install: the mark on
-    the left, the ZEROTRACE wordmark centred to its right, the same composition the installer
-    and `zerotrace` draw.
-
-    It is a fourth copy of the art (GitHub cannot run the code either), so it drifts the same
-    way the installers do - and it is the first thing anyone sees of the project.
-    """
-    sh_text = SH.read_text(encoding="utf-8")
-    mark = sh_text.split("<<'MARK'\n")[1].split("MARK\n")[0].rstrip("\n").split("\n")
-    wordmark = sh_text.split("<<'WORDMARK'\n")[1].split("WORDMARK\n")[0].rstrip("\n").split("\n")
-    width = max(len(line) for line in mark)
-    top = (len(mark) - len(wordmark)) // 2
-    composed = []
-    for i, line in enumerate(mark):
-        j = i - top
-        if 0 <= j < len(wordmark):
-            composed.append((line.ljust(width) + "   " + wordmark[j]).rstrip())
-        else:
-            composed.append(line.rstrip())
-    banner = (ROOT / "README.md").read_text(encoding="utf-8").split("```\n")[1]
-    assert banner.rstrip("\n").split("\n") == [
-        *composed, "",
-        "secret & PII guardrail · no trace. no leaks. stays safe."]
-
-
 def test_both_installers_draw_the_same_wordmark():
     wordmark = logo._block_wordmark()
     sh_text = SH.read_text(encoding="utf-8")

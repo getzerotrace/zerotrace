@@ -10,7 +10,7 @@ name: site
 # github.io.
 #
 # What is published:
-#   index.html        site/index.html from this repository
+#   index.html        index.html from this repository
 #   install.sh        the STAMPED installer from the newest release, so the one-liner installs
 #   install.ps1       that release rather than whatever is on main
 #   SHA256SUMS        the release's checksums, so a person can verify what they downloaded
@@ -64,7 +64,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out
-          cp site/index.html out/index.html
+          cp index.html out/index.html
 
           # The installers come from the RELEASE, not from this checkout: the release copies
           # are stamped with their own version, so `curl … | bash` installs a released version

@@ -1,6 +1,6 @@
 # Using ZeroTrace
 
-Day-to-day use, once `curl -fsSL https://getzerotrace.github.io/install.sh | bash` has run.
+Day-to-day use, once `curl -fsSL https://getzerotrace.github.io/zerotrace/install.sh | bash` has run.
 Installing is [docs/INSTALL.md](INSTALL.md); how it is built is
 [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 

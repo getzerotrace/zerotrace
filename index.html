@@ -253,11 +253,11 @@
 <span class="ln box">  &#9484;&#9472; <span class="block">BLOCKED</span> &#9472; 2 findings in 1 file &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</span>
 <span class="ln box">  &#9474;</span>
 <span class="ln box">  &#9474;  <span class="path">config/payments.py:14</span>   <span class="crit">CRITICAL</span>   Stripe secret key</span>
-<span class="ln box">  &#9474;    stripe.api_key = "<span class="mask">sk_live_&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span>"</span>
+<span class="ln box">  &#9474;    stripe.api_key = &quot;<span class="mask">sk_live_&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span>&quot;</span>
 <span class="ln box">  &#9474;    <span class="note">&rarr; deterministic detector &middot; never sent to the model</span></span>
 <span class="ln box">  &#9474;</span>
 <span class="ln box">  &#9474;  <span class="path">config/payments.py:27</span>   <span class="med">MEDIUM</span>     High-entropy assignment</span>
-<span class="ln box">  &#9474;    WEBHOOK_SECRET = "<span class="mask">whsec_&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span>"</span>
+<span class="ln box">  &#9474;    WEBHOOK_SECRET = &quot;<span class="mask">whsec_&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span>&quot;</span>
 <span class="ln box">  &#9474;    <span class="note">&rarr; local model settled: REAL_SECRET (0.91) &middot; escalated to BLOCK</span></span>
 <span class="ln box">  &#9474;</span>
 <span class="ln box">  &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</span>
@@ -345,12 +345,12 @@
       <div class="install-box reveal">
         <div class="cmd-row">
           <span class="lbl">bash</span>
-          <code id="cmd-sh"><span class="g">curl</span> -fsSL https://getzerotrace.github.io/install.sh | <span class="g">bash</span></code>
+          <code id="cmd-sh"><span class="g">curl</span> -fsSL https://getzerotrace.github.io/zerotrace/install.sh | <span class="g">bash</span></code>
           <button class="copy" type="button" data-target="cmd-sh">copy</button>
         </div>
         <div class="cmd-row">
           <span class="lbl">pwsh</span>
-          <code id="cmd-ps"><span class="g">irm</span> https://getzerotrace.github.io/install.ps1 | <span class="g">iex</span></code>
+          <code id="cmd-ps"><span class="g">irm</span> https://getzerotrace.github.io/zerotrace/install.ps1 | <span class="g">iex</span></code>
           <button class="copy" type="button" data-target="cmd-ps">copy</button>
         </div>
       </div>

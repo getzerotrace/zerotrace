@@ -68,25 +68,29 @@ def test_both_installers_carry_the_same_accent_ramp(script):
     assert "{};{};{}".format(*theme.ACCENT_RGB) in text
 
 
-def test_the_shell_installer_draws_the_real_mark():
-    """The wordmark and the mark are pasted into the shell scripts; if the asset is
-    regenerated and they are not, the installer shows the old logo forever."""
-    expected = logo._inverted_mask(logo._mark_lines("mark.small.uni.txt"))
+@pytest.mark.parametrize("asset", ["mark.uni.txt", "mark.small.uni.txt"])
+def test_the_shell_installer_draws_the_real_mark(asset):
+    """Both marks are pasted into the shell script (big for wide terminals, small for narrow);
+    if an asset is regenerated and they are not, the installer shows the old logo forever."""
+    expected = logo._inverted_mask(logo._mark_lines(asset))
     text = SH.read_text(encoding="utf-8")
     for line in expected:
-        assert line in text, "install.sh no longer matches ui/assets/mark.small.uni.txt"
+        assert line in text, f"install.sh no longer matches ui/assets/{asset}"
 
 
-def test_the_powershell_installer_draws_the_real_mark():
-    """Encoded F/T/B, because the file has to stay ASCII - decode it and compare."""
-    expected = logo._inverted_mask(logo._mark_lines("mark.small.uni.txt"))
+@pytest.mark.parametrize("var,asset", [("markBig", "mark.uni.txt"),
+                                       ("markSmall", "mark.small.uni.txt")])
+def test_the_powershell_installer_draws_the_real_mark(var, asset):
+    """Encoded F/T/B, because the file has to stay ASCII - decode it and compare. Both the big
+    and small marks must match their assets."""
+    expected = logo._inverted_mask(logo._mark_lines(asset))
     text = PS1.read_text(encoding="ascii")
-    block = re.search(r"\$mark = @\((.*?)\)\n", text, re.DOTALL)
-    assert block, "the mark array is gone from install.ps1"
+    block = re.search(rf"\${var} = @\((.*?)\)\n", text, re.DOTALL)
+    assert block, f"the {var} array is gone from install.ps1"
     rows = re.findall(r"'([FTB ]+)'", block.group(1))
     decoded = [row.replace("F", "█").replace("T", "▀").replace("B", "▄")
                for row in rows]
-    assert decoded == expected, "install.ps1 no longer matches ui/assets/mark.small.uni.txt"
+    assert decoded == expected, f"install.ps1 no longer matches ui/assets/{asset}"
 
 
 def test_both_installers_draw_the_same_wordmark():

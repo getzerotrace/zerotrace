@@ -158,12 +158,25 @@ function Restore-Console {
 function Write-Banner {
     if (-not $script:Tty) { Write-Host "ZeroTrace installer"; return }
     Write-Host ""
-    # The mark, encoded F/T/B (full, upper half, lower half) rather than written with the block
-    # characters themselves: a .ps1 that is not ASCII has to carry a BOM for Windows PowerShell
-    # 5.1 to read it correctly, and a file that renders as mojibake on the one console this
-    # script exists for is not worth the shorter source.
-    # tests/test_installers.py checks this against ui/assets/mark.small.uni.txt.
-    $mark = @(
+    # The heimdall, encoded F/T/B (full, upper half, lower half) rather than written with the
+    # block characters themselves: a .ps1 that is not ASCII has to carry a BOM for Windows
+    # PowerShell 5.1 to read it correctly, and a file that renders as mojibake on the one
+    # console this script exists for is not worth the shorter source. The big detailed mark
+    # when the console is wide enough, otherwise the small one, so the banner never wraps.
+    # tests/test_installers.py checks both against ui/assets/mark[.small].uni.txt.
+    $markBig = @(
+        'FFFTFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFTTFFF', 'FFT  FFFFFFFFFFFFFFFFFFFFFFFFFFFFFF  FFF',
+        'FF   TFFFFFFFFFFFFTTTFFFFFFFFFFFFF   TFF', 'FF    TFFFFFFFFTT      TFFFFFFFFT     FF',
+        'FF   FB TTFFFT       BB  TFFFTT  B    FF', 'FF    FFBB          BFFFB    BBFFT   FFF',
+        'FFFB   TFF          FFFFFFB  FFT    FFFF', 'FFFFB              FFFFFFFFB      BFFFFF',
+        'FFFFFFF            FFFFFFFFFB   FFFFFFFF', 'FFFFFFF            F        T   FFFFFFFF',
+        'FFFFFFF     TTTTT  F  TTTT      FFFFFFFF', 'FFFFFFT              B   B      TFFFFFFF',
+        'FFFFFT      TFFB     FFFFFT       FFFFFF', 'FFFFFBT       TT     TTFT       TFFFFFFF',
+        'FFFFFF           BBBBB           FFFFFFF', 'FFFFF               BFFBBBF       FFFFFF',
+        'FFFFFBBBB          FFFFTFFF   BBBBFFFFFF', 'FFFFFFFFT          FFF  FTT   FFFFFFFFFF',
+        'FFFFFFF             TT   BBFF  TFFFFFFFF', 'FFFFFFFB           BBBFFFFFTT BFFFFFFFFF',
+        'FFFFFFFFFFB       TTTTTT   BBFFFFFFFFFFF', 'FFFFFFFFFFFFFBBBB   BBBBFFFFFFFFFFFFFFFF')
+    $markSmall = @(
         'FFFTFFFFFFFFFFFFFFFFFFTFFF', 'FF  TFFFFFFFTFFFFFFFFT TFF',
         'FF   TFFFFT    TFFFFT   FF', 'FF  TBB      BFB   BF  FFF',
         'FFFB  T      FFFF TT  BFFF', 'FFFFF       FFTTFF  BFFFFF',
@@ -171,6 +184,9 @@ function Write-Banner {
         'FFFFB    T    TT     BFFFF', 'FFFF       TTFB B    FFFFF',
         'FFFFBB       FTTF  BBFFFFF', 'FFFFFT       T  BB TFFFFFF',
         'FFFFFFB     BFFTT BFFFFFFF', 'FFFFFFFFBBBBBBBBFFFFFFFFFF')
+    $width = 80
+    try { if ([Console]::WindowWidth -gt 0) { $width = [Console]::WindowWidth } } catch { }
+    $mark = if ($width -ge 106) { $markBig } else { $markSmall }
     $wordmark = @(
         '#####  #####  ####   #####  #####  ####    ###   #####  #####',
         '   ##  ##     ## ##  ## ##    ##   ## ##  ## ##  ##     ##',
@@ -179,9 +195,9 @@ function Write-Banner {
         '#####  #####  ## ##  #####    ##   ## ##  ## ##  #####  #####')
     if ($script:Unicode) {
         # The mark on the left, the ZEROTRACE wordmark centred to its right - the same
-        # composition `zerotrace` prints. 14 mark rows, 5 wordmark rows, so the wordmark sits
-        # against rows 4..8. Each row takes its gradient stop, bright at the top and deep at
-        # the chin, so the mark and the name catch the light together.
+        # composition `zerotrace` prints. The wordmark sits against the middle rows of whichever
+        # mark was chosen. Each row takes its gradient stop, bright at the top and deep at the
+        # chin, so the mark and the name catch the light together.
         $top = [int][Math]::Floor(($mark.Count - $wordmark.Count) / 2)
         for ($i = 0; $i -lt $mark.Count; $i++) {
             $line = $mark[$i].Replace('F', [string][char]0x2588).Replace('T', [string][char]0x2580)

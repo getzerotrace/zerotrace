@@ -199,10 +199,36 @@ banner() {
 WORDMARK
 )
   if [ "$UNICODE" = 1 ]; then
-    # The mark on the left, the ZEROTRACE wordmark centred to its right - the same
-    # composition `zerotrace` prints. The mark is 14 rows and the wordmark 5, so the wordmark
-    # sits against mark rows 4..8. Each row takes its gradient stop, so the mark and the name
-    # catch the light together, bright at the top and deep at the chin.
+    # The heimdall on the left, the ZEROTRACE wordmark centred to its right - the same
+    # composition `zerotrace` draws. The big detailed mark when the terminal is wide enough,
+    # otherwise the small one, so the banner never overflows. Each row takes its own stop of
+    # the vertical gradient, bright at the top and deep at the chin. Both marks are the
+    # inverted mask of ui/assets/mark[.small].uni.txt; tests/test_installers.py checks them.
+    big=$(cat <<'MARKBIG'
+███▀███████████████████████████████▀▀███
+██▀  ██████████████████████████████  ███
+██   ▀████████████▀▀▀█████████████   ▀██
+██    ▀████████▀▀      ▀████████▀     ██
+██   █▄ ▀▀███▀       ▄▄  ▀███▀▀  ▄    ██
+██    ██▄▄          ▄███▄    ▄▄██▀   ███
+███▄   ▀██          ██████▄  ██▀    ████
+████▄              ████████▄      ▄█████
+███████            █████████▄   ████████
+███████            █        ▀   ████████
+███████     ▀▀▀▀▀  █  ▀▀▀▀      ████████
+██████▀              ▄   ▄      ▀███████
+█████▀      ▀██▄     █████▀       ██████
+█████▄▀       ▀▀     ▀▀█▀       ▀███████
+██████           ▄▄▄▄▄           ███████
+█████               ▄██▄▄▄█       ██████
+█████▄▄▄▄          ████▀███   ▄▄▄▄██████
+████████▀          ███  █▀▀   ██████████
+███████             ▀▀   ▄▄██  ▀████████
+███████▄           ▄▄▄█████▀▀ ▄█████████
+██████████▄       ▀▀▀▀▀▀   ▄▄███████████
+█████████████▄▄▄▄   ▄▄▄▄████████████████
+MARKBIG
+)
     mark=$(cat <<'MARK'
 ███▀██████████████████▀███
 ██  ▀███████▀████████▀ ▀██
@@ -220,14 +246,23 @@ WORDMARK
 ████████▄▄▄▄▄▄▄▄██████████
 MARK
 )
+    # The big mark's banner is ~105 columns (mark 40 + gutter + wordmark 60); below that,
+    # draw the small one so nothing wraps.
+    [ "${COLS:-80}" -ge 106 ] && mark="$big"
+    total=$(printf '%s\n' "$mark" | grep -c '')
+    words=$(printf '%s\n' "$word" | grep -c '')
+    top=$(( (total - words) / 2 ))
     # shellcheck disable=SC2086
     set -- $LOGO_ESC
+    stops=$#
     row=0
     printf '%s\n' "$mark" | while IFS= read -r mline; do
-      band=$(( row * 4 / 14 )); [ "$band" -gt 3 ] && band=3
+      band=$(( row * stops / total )); [ "$band" -ge "$stops" ] && band=$(( stops - 1 ))
       eval "esc=\${$((band + 1))}"
       wline=''
-      [ "$row" -ge 4 ] && [ "$row" -le 8 ] && wline=$(printf '%s\n' "$word" | sed -n "$((row - 3))p")
+      if [ "$row" -ge "$top" ] && [ "$row" -lt "$((top + words))" ]; then
+        wline=$(printf '%s\n' "$word" | sed -n "$((row - top + 1))p")
+      fi
       if [ -n "$wline" ]; then
         printf '  %s%s   %s%s\n' "${esc:-$ACCENT}" "$mline" "$wline" "$N"
       else

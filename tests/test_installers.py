@@ -93,8 +93,12 @@ def test_the_powershell_installer_draws_the_real_mark(var, asset):
     assert decoded == expected, f"install.ps1 no longer matches ui/assets/{asset}"
 
 
-def test_both_installers_draw_the_same_wordmark():
-    wordmark = logo._block_wordmark()
+@pytest.mark.parametrize("big", [True, False])
+def test_both_installers_draw_the_same_wordmark(big):
+    """Both weights are pasted in: the bold seven-row ZEROTRACE for a wide terminal and the
+    five-row one below it, the same two `zerotrace ui` walks. If _FONT/_FONT_BIG changes and a
+    copy does not, the installer shows the old wordmark forever - which is exactly what happened."""
+    wordmark = logo._block_wordmark(big=big)
     sh_text = SH.read_text(encoding="utf-8")
     ps_text = PS1.read_text(encoding="ascii")
     for line in wordmark:

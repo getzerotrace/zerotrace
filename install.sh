@@ -202,7 +202,7 @@ say() { printf '%s\n' "$*"; }
 banner() {
   [ "$TTY" = 0 ] && { say "ZeroTrace installer"; say ""; return; }
   say ""
-  word=$(cat <<'WORDMARK'
+  wordsmall=$(cat <<'WORDMARK'
 █████  █████  ████   █████  █████  ████    ███   █████  █████
    ██  ██     ██ ██  ██ ██    ██   ██ ██  ██ ██  ██     ██
   ██   ████   ████   ██ ██    ██   ████   █████  ██     ████
@@ -210,6 +210,22 @@ banner() {
 █████  █████  ██ ██  █████    ██   ██ ██  ██ ██  █████  █████
 WORDMARK
 )
+  wordbig=$(cat <<'WORDMARKBIG'
+███████ ███████ ██████   █████  ███████ ██████    ███    █████  ███████
+     ██ ██      ██   ██ ██   ██    ██   ██   ██  ██ ██  ██   ██ ██
+    ██  ██      ██   ██ ██   ██    ██   ██   ██ ██   ██ ██      ██
+   ██   ██████  ██████  ██   ██    ██   ██████  ███████ ██      ██████
+  ██    ██      ██  ██  ██   ██    ██   ██  ██  ██   ██ ██      ██
+ ██     ██      ██   ██ ██   ██    ██   ██   ██ ██   ██ ██   ██ ██
+███████ ███████ ██   ██  █████     ██   ██   ██ ██   ██  █████  ███████
+WORDMARKBIG
+)
+  # The bold seven-row ZEROTRACE when the terminal is wide enough to carry it beside the mark
+  # (indent 2 + mark 40 + gutter 3 + wordmark 71 = 116), otherwise the five-row one - the same
+  # two weights `zerotrace ui` walks. These are logo._block_wordmark(big=True)/(); a test in
+  # tests/test_installers.py fails if either drifts from the Python that draws `zerotrace ui`.
+  word="$wordsmall"
+  [ "${COLS:-80}" -ge 116 ] && word="$wordbig"
   if [ "$UNICODE" = 1 ]; then
     # The heimdall on the left, the ZEROTRACE wordmark centred to its right - the same
     # composition `zerotrace` draws. The big detailed mark when the terminal is wide enough,
@@ -304,7 +320,7 @@ MARK
       printf '  %s%s%s\n' "$ACCENT" "$(printf '%s' "$line" | tr '█' '#')" "$N"
     done
   fi
-  printf '\n  %ssecret & PII guardrail · no trace. no leaks. stays safe.%s\n\n' "$MUTE" "$N"
+  printf '\n  %sno trace. no leaks. stays safe.%s\n\n' "$MUTE" "$N"
 }
 
 # ── the progress bar ─────────────────────────────────────────────────────────────────────

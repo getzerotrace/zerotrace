@@ -187,12 +187,25 @@ function Write-Banner {
     $width = 80
     try { if ([Console]::WindowWidth -gt 0) { $width = [Console]::WindowWidth } } catch { }
     $mark = if ($width -ge 106) { $markBig } else { $markSmall }
-    $wordmark = @(
+    $wordmarkSmall = @(
         '#####  #####  ####   #####  #####  ####    ###   #####  #####',
         '   ##  ##     ## ##  ## ##    ##   ## ##  ## ##  ##     ##',
         '  ##   ####   ####   ## ##    ##   ####   #####  ##     ####',
         ' ##    ##     ## ##  ## ##    ##   ## ##  ## ##  ##     ##',
         '#####  #####  ## ##  #####    ##   ## ##  ## ##  #####  #####')
+    # The bold seven-row ZEROTRACE (logo._block_wordmark(big=True)) when the console is wide
+    # enough for it beside the mark (indent 2 + mark 40 + gutter 3 + wordmark 71 = 116),
+    # otherwise the five-row one - the two weights `zerotrace ui` walks. In '#' so the file
+    # stays ASCII; swapped to the block glyph at draw time. tests/test_installers.py checks both.
+    $wordmarkBig = @(
+        '####### ####### ######   #####  ####### ######    ###    #####  #######',
+        '     ## ##      ##   ## ##   ##    ##   ##   ##  ## ##  ##   ## ##',
+        '    ##  ##      ##   ## ##   ##    ##   ##   ## ##   ## ##      ##',
+        '   ##   ######  ######  ##   ##    ##   ######  ####### ##      ######',
+        '  ##    ##      ##  ##  ##   ##    ##   ##  ##  ##   ## ##      ##',
+        ' ##     ##      ##   ## ##   ##    ##   ##   ## ##   ## ##   ## ##',
+        '####### ####### ##   ##  #####     ##   ##   ## ##   ##  #####  #######')
+    $wordmark = if ($width -ge 116) { $wordmarkBig } else { $wordmarkSmall }
     if ($script:Unicode) {
         # The mark on the left, the ZEROTRACE wordmark centred to its right - the same
         # composition `zerotrace` prints. The wordmark sits against the middle rows of whichever
@@ -218,8 +231,7 @@ function Write-Banner {
         }
     }
     Write-Host ""
-    Write-Host ("  " + $Dim + "secret & PII guardrail " + [string][char]0x00B7 +
-                " no trace. no leaks. stays safe." + $Reset)
+    Write-Host ("  " + $Dim + "no trace. no leaks. stays safe." + $Reset)
     Write-Host ""
 }
 

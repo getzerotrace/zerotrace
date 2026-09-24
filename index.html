@@ -402,7 +402,7 @@
       for (yy=Math.ceil(midY); yy<lines.length; yy++){ var r2=lines[yy];
         for (xx=0; xx<r2.length; xx++){ if (r2[xx] !== " "){ bsum+=xx; bn++; } } }
       if (bn) offx = Math.round((GRIDW - 1)/2 - bsum/bn);   // centre the face/beard, not horns
-      offx += 2;                                            // then a couple columns right, as asked
+      offx += 3;                                            // then a few columns right, as asked
     }
     var cells = [];
     for (var y=0; y<lines.length; y++){

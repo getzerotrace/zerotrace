@@ -4,6 +4,16 @@ All notable changes documented here, following [Keep a Changelog](https://keepac
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- The landing page's ASCII hero is one continuous, grid-locked animation: the Heimdall mark
+  forms, disperses into the ZEROTRACE wordmark, then streams into flowing code-rain and loops,
+  with the mark and wordmark centred and the copy moved below the fold.
+
+### Fixed
+- `install.sh` draws the logo as a smooth vertical gradient, matching what `zerotrace` prints
+  in the terminal, instead of four flat colour bands.
+- The `card` logo tier is a dark silhouette on the emerald gradient (not the accent on a light
+  card), and the README banner is kept in step with the installer mark.
 
 ## [0.3.0] - 2026-09-24
 ### Added

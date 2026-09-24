@@ -425,7 +425,7 @@
   /* ---------------- canvas + layout (full viewport) ---------------- */
   var bg = document.getElementById("bg-layer"), fx = document.getElementById("fx-layer");
   var bctx = bg.getContext("2d"), fctx = fx.getContext("2d");
-  var cw, chp, cols, rows, offCol, offRow, fontPx, dpr, W, H, N, dist, maxDist;
+  var cw, chp, cols, rows, offCol, offRow, fontPx, dpr, W, H, N, dist, maxDist, ACX, ACY;
   var mono = getComputedStyle(document.body).fontFamily;
 
   function color(inten, bright){
@@ -444,16 +444,21 @@
     chp = cw * 1.7;
     cols = Math.ceil(W / cw) + 1; rows = Math.ceil(H / chp) + 1;
     offCol = Math.round((W/cw - GRIDW)/2);           // centre the grid on the viewport exactly
-    offRow = Math.max(1, Math.round((H*0.44 - GRIDH*chp/2)/chp));
+    offRow = Math.max(1, Math.round((H*0.47 - GRIDH*chp/2)/chp));
     fontPx = cw / 0.6;
     N = cols*rows;
-    // per-cell distance from screen centre, in pixels, so ripples read as true circles
+    // The wave and every ripple radiate from the EXACT centre of the mark - the real centre of
+    // the animation - not the grid centre (which the +1 padding column and the mark's vertical
+    // offset push away from it). Measure each cell's distance from that point, in pixels.
+    ACX = (offCol + (GRIDW-1)/2)*cw + cw/2;
+    ACY = (offRow + (GRIDH-1)/2)*chp + chp/2;
     dist = new Float32Array(N);
-    var ccol=cols/2, crow=rows/2;
     for (var rr=0; rr<rows; rr++){ for (var ccx=0; ccx<cols; ccx++){
-      var dx=(ccx-ccol)*cw, dy=(rr-crow)*chp; dist[rr*cols+ccx]=Math.sqrt(dx*dx+dy*dy);
+      var dx=(ccx*cw+cw/2)-ACX, dy=(rr*chp+chp/2)-ACY; dist[rr*cols+ccx]=Math.sqrt(dx*dx+dy*dy);
     } }
-    maxDist = Math.sqrt(W*W+H*H)/2;
+    // farthest corner from the mark centre, so a ripple still reaches every edge
+    maxDist = Math.max(Math.hypot(ACX,ACY), Math.hypot(W-ACX,ACY),
+                       Math.hypot(ACX,H-ACY), Math.hypot(W-ACX,H-ACY));
     [bg, fx].forEach(function(cv){
       cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
       var cx = cv.getContext("2d");

@@ -32,10 +32,6 @@ The installers served from `main` **resolve and install the newest release at ru
 curl -fsSL https://github.com/getzerotrace/zerotrace/releases/latest/download/install.sh | bash
 ```
 
-(`.github/workflows/site.yml` can additionally mirror the stamped release installers to a
-separate root domain — `getzerotrace/getzerotrace.github.io` with a `SITE_DEPLOY_TOKEN` — but
-that is optional; the project page above needs neither.)
-
 ### Other ways in
 
 ```bash

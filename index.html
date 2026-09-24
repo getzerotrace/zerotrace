@@ -385,15 +385,17 @@
   function hash(x,y){ var h = (x*73856093) ^ (y*19349663); h = (h ^ (h>>>13)) >>> 0; return h; }
 
   function buildFrame(lines, w, h, isWord){
-    // Centre by the INK, not by the declared bounding box: the artwork's silhouette is not
-    // symmetric inside its box (the Heimdall's ink sits right of its box centre), so centring
-    // the box leaves the mark off to one side. Find the ink extent and centre that instead.
-    var minx = Infinity, maxx = -Infinity, miny = Infinity, maxy = -Infinity, yy, xx;
+    // Centre the Heimdall by its VISUAL MASS, not its bounding box. The silhouette is denser on
+    // the face side, so centring the box still leaves the weight off to one side; centring the
+    // density-weighted centroid puts the mark where the eye reads it as middle. (For the
+    // symmetric wordmark the centroid is the box centre, so it is unaffected.) Vertically the
+    // ink already fills the box, so the bounding box is fine there.
+    var miny = Infinity, maxy = -Infinity, sumx = 0, n = 0, yy, xx;
     for (yy=0; yy<lines.length; yy++){ var rr=lines[yy];
       for (xx=0; xx<rr.length; xx++){ if (rr[xx] !== " "){
-        if (xx<minx) minx=xx; if (xx>maxx) maxx=xx; if (yy<miny) miny=yy; if (yy>maxy) maxy=yy; } } }
-    if (minx === Infinity){ minx=maxx=miny=maxy=0; }
-    var offx = Math.floor((GRIDW - (maxx-minx+1))/2) - minx;
+        sumx += xx; n++; if (yy<miny) miny=yy; if (yy>maxy) maxy=yy; } } }
+    if (n === 0){ miny=maxy=0; n=1; }
+    var offx = Math.round((GRIDW - 1)/2 - sumx/n);
     var offy = Math.floor((GRIDH - (maxy-miny+1))/2) - miny;
     var cells = [];
     for (var y=0; y<lines.length; y++){

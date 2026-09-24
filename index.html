@@ -385,19 +385,24 @@
   function hash(x,y){ var h = (x*73856093) ^ (y*19349663); h = (h ^ (h>>>13)) >>> 0; return h; }
 
   function buildFrame(lines, w, h, isWord){
-    // Centre the ink's bounding box (its visible extent) on the grid - that is the centre the
-    // eye reads for the Heimdall's horns and outline. The wordmark is dropped two rows so it
-    // lands on the middle rather than sitting a touch high like the tall mark.
+    // Vertically, centre the ink box (the wordmark drops one row so it lands on the middle).
+    // Horizontally: the wordmark centres its box, but the MARK centres on its BOTTOM half - the
+    // face and beard - not the horns, because that lower mass is what the eye reads as centre.
     var minx = Infinity, maxx = -Infinity, miny = Infinity, maxy = -Infinity, yy, xx;
     for (yy=0; yy<lines.length; yy++){ var rr=lines[yy];
       for (xx=0; xx<rr.length; xx++){ if (rr[xx] !== " "){
         if (xx<minx) minx=xx; if (xx>maxx) maxx=xx; if (yy<miny) miny=yy; if (yy>maxy) maxy=yy; } } }
     if (minx === Infinity){ minx=maxx=miny=maxy=0; }
-    var offx = Math.floor((GRIDW - (maxx-minx+1))/2) - minx;
     var offy = Math.floor((GRIDH - (maxy-miny+1))/2) - miny;
-    if (isWord) offy += 2;              // drop the wordmark to the middle
-    else offx += 3;                     // optical nudge: the mark's left outline is sparse, so
-                                        // its geometric centre reads a little left - push right
+    var offx = Math.floor((GRIDW - (maxx-minx+1))/2) - minx;
+    if (isWord){
+      offy += 1;                        // nudge the wordmark down onto the middle
+    } else {
+      var midY = (miny+maxy)/2, bsum = 0, bn = 0;
+      for (yy=Math.ceil(midY); yy<lines.length; yy++){ var r2=lines[yy];
+        for (xx=0; xx<r2.length; xx++){ if (r2[xx] !== " "){ bsum+=xx; bn++; } } }
+      if (bn) offx = Math.round((GRIDW - 1)/2 - bsum/bn);   // centre the face/beard, not horns
+    }
     var cells = [];
     for (var y=0; y<lines.length; y++){
       var row = lines[y];

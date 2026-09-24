@@ -180,13 +180,19 @@ def test_card_tier_falls_back_to_256_colour(monkeypatch):
     assert "38;5;16;" in art, "the near-black mark ink"
 
 
-def test_card_is_used_automatically_on_a_colour_terminal():
+def test_auto_uses_the_unicode_gradient_not_the_card():
+    """The card is opt-in (ZEROTRACE_LOGO=card). On auto, a colour terminal gets the same
+    emerald-gradient mark on its own background that the installer draws - no gradient page -
+    so `zerotrace` and the installer show one identical logo, not a carded mark beside an
+    un-carded name."""
     art = logo.render(_console(width=120))
-    assert "48;2;" in art, "a colour UTF-8 terminal should get the card, not the mono mark"
+    assert "48;2;" not in art, "auto must not paint the gradient card background"
+    assert "38;2;{};{};{}".format(*theme.LOGO_RGB[0]) in art, "it is the gradient mark, in colour"
 
 
 def test_no_color_drops_the_card(monkeypatch):
     monkeypatch.setenv("NO_COLOR", "1")
+    monkeypatch.setenv("ZEROTRACE_LOGO", "card")
     art = logo.render(_console(width=120))
     assert "48;2;" not in art
 

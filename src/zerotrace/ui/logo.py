@@ -293,7 +293,11 @@ def render(console: Console) -> str | None:
         return _paint(_text_lines(console.width or 80, not capability.supports_unicode(console)),
                       console)
 
-    if forced == "card" or (forced is None and _supports_card(console)):
+    # The card (dark mark on an emerald-gradient page) is opt-in only. On auto we draw the
+    # unicode tier - an emerald-gradient mark on the terminal's own background, with the
+    # wordmark beside it in the same gradient - so `zerotrace` and the installer show the
+    # one identical logo instead of a carded mark next to an un-carded name.
+    if forced == "card" and _supports_card(console):
         lines = _composition(console, unicode_tier=True, card=True)
         if any("\033[" in line for line in lines):
             return _paint(lines, console)

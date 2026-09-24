@@ -162,15 +162,21 @@ RAMP_256='23 23 29 29 29 29 36 36 36 42 42 42'
 LOGO_RGB='16;185;129 5;150;105 4;120;87 6;95;70'
 LOGO_256='36 29 29 23'
 
+# Decide truecolor the SAME way `zerotrace` (rich) does, so the installer's gradient is exactly
+# the tool's. rich opts OUT, not in: COLORTERM=truecolor/24bit wins; otherwise a TERM ending in
+# -256color/-16color or naming kitty/linux/dumb is NOT truecolor, a -direct terminfo IS, and
+# ANYTHING ELSE is assumed truecolor - which is what almost every current terminal supports.
 case "${COLORTERM:-}" in
   truecolor|24bit) TRUECOLOR=1 ;;
-  *) TRUECOLOR=0 ;;
+  *)
+    case "${TERM:-dumb}" in
+      *-direct) TRUECOLOR=1 ;;
+      *-256color|*-16color|*-88color|*-kitty|linux|dumb|"") TRUECOLOR=0 ;;
+      *) TRUECOLOR=1 ;;
+    esac ;;
 esac
-# Many truecolor terminals never set COLORTERM. Treat the ones `zerotrace` (rich) also renders
-# in truecolor as truecolor here too, so the installer's gradient matches the tool's instead of
-# dropping to the flatter 256-colour ramp.
+# Belt and suspenders: terminals known to be truecolor that may report none of the above.
 case "${TERM_PROGRAM:-}" in iTerm.app|vscode|WezTerm|ghostty|Hyper) TRUECOLOR=1 ;; esac
-case "${TERM:-}" in *-direct|*-truecolor|*-24bit) TRUECOLOR=1 ;; esac
 [ -n "${WT_SESSION:-}" ] && TRUECOLOR=1
 
 RAMP=''

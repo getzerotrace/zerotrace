@@ -207,32 +207,35 @@ function Write-Banner {
         '####### ####### ##   ##  #####     ##   ##   ## ##   ##  #####  #######')
     $wordmark = if ($width -ge 116) { $wordmarkBig } else { $wordmarkSmall }
     if ($script:Unicode) {
-        # The mark on the left, the ZEROTRACE wordmark centred to its right - the same
-        # composition `zerotrace` prints. The wordmark sits against the middle rows of whichever
-        # mark was chosen. Each row takes its gradient stop, bright at the top and deep at the
-        # chin, so the mark and the name catch the light together.
-        $top = [int][Math]::Floor(($mark.Count - $wordmark.Count) / 2)
+        # The mark on the left; the wordmark with the tagline two rows beneath it is ONE
+        # right-hand block, centred against the mark - so the name and the promise sit together
+        # beside the heimdall, the way `zerotrace ui` composes them, instead of the tagline
+        # dropping to the foot of the card. Each row takes its gradient stop, bright at the top
+        # and deep at the chin, so the mark and the name catch the light together.
+        $right = $wordmark + @("", "no trace. no leaks. stays safe.")
+        $top = [int][Math]::Floor(($mark.Count - $right.Count) / 2)
         for ($i = 0; $i -lt $mark.Count; $i++) {
             $line = $mark[$i].Replace('F', [string][char]0x2588).Replace('T', [string][char]0x2580)
             $line = $line.Replace('B', [string][char]0x2584)
             $j = $i - $top
-            if ($j -ge 0 -and $j -lt $wordmark.Count) {
-                $line = $line + "   " + $wordmark[$j].Replace('#', [string][char]0x2588)
+            if ($j -ge 0 -and $j -lt $right.Count -and $right[$j] -ne "") {
+                $line = $line + "   " + $right[$j].Replace('#', [string][char]0x2588)
             }
             $band = [int][Math]::Floor($i * $LogoEsc.Count / $mark.Count)
             if ($band -ge $LogoEsc.Count) { $band = $LogoEsc.Count - 1 }
             $esc = $(if ($LogoEsc[$band]) { $LogoEsc[$band] } else { $Accent })
             Write-Host ("  " + $esc + $line + $Reset)
         }
+        Write-Host ""
     } else {
-        # ASCII console: no mark, the wordmark alone in the accent.
+        # ASCII console: no mark, the wordmark alone in the accent, the tagline beneath it.
         foreach ($row in $wordmark) {
             Write-Host ("  " + $Accent + $row + $Reset)
         }
+        Write-Host ""
+        Write-Host ("  " + $Dim + "no trace. no leaks. stays safe." + $Reset)
+        Write-Host ""
     }
-    Write-Host ""
-    Write-Host ("  " + $Dim + "no trace. no leaks. stays safe." + $Reset)
-    Write-Host ""
 }
 
 # --- the progress bar --------------------------------------------------------------------

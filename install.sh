@@ -274,11 +274,15 @@ MARKBIG
 ████████▄▄▄▄▄▄▄▄██████████
 MARK
 )
-    # The big mark's banner is ~105 columns (mark 40 + gutter + wordmark 60); below that,
-    # draw the small one so nothing wraps.
+    # The big detailed mark once the terminal is wide enough (indent 2 + mark 40 + gutter 3 +
+    # small wordmark 61 = 106); below that the small mark, so nothing wraps.
     [ "${COLS:-80}" -ge 106 ] && mark="$big"
+    # The wordmark with the tagline two rows beneath it is ONE right-hand block, centred against
+    # the mark - so the name and the promise sit together beside the heimdall, the way
+    # `zerotrace ui` composes them, instead of the tagline dropping to the foot of the card.
+    right=$(printf '%s\n\n%sno trace. no leaks. stays safe.' "$word" "")
     total=$(printf '%s\n' "$mark" | grep -c '')
-    words=$(printf '%s\n' "$word" | grep -c '')
+    words=$(printf '%s\n' "$right" | grep -c '')
     top=$(( (total - words) / 2 ))
     # A smooth vertical gradient: interpolate the four stops across every row, exactly the way
     # `zerotrace` draws it. Four flat bands (the old behaviour) leave the top third one solid
@@ -305,7 +309,7 @@ MARK
       fi
       wline=''
       if [ "$row" -ge "$top" ] && [ "$row" -lt "$((top + words))" ]; then
-        wline=$(printf '%s\n' "$word" | sed -n "$((row - top + 1))p")
+        wline=$(printf '%s\n' "$right" | sed -n "$((row - top + 1))p")
       fi
       if [ -n "$wline" ]; then
         printf '  %s%s   %s%s\n' "${esc:-$ACCENT}" "$mline" "$wline" "$N"
@@ -314,13 +318,14 @@ MARK
       fi
       row=$((row + 1))
     done
+    printf '\n'
   else
-    # ASCII console: no mark, the wordmark alone in the accent.
+    # ASCII console: no mark, the wordmark alone in the accent, the tagline beneath it.
     printf '%s\n' "$word" | while IFS= read -r line; do
       printf '  %s%s%s\n' "$ACCENT" "$(printf '%s' "$line" | tr '█' '#')" "$N"
     done
+    printf '\n  %sno trace. no leaks. stays safe.%s\n\n' "$MUTE" "$N"
   fi
-  printf '\n  %sno trace. no leaks. stays safe.%s\n\n' "$MUTE" "$N"
 }
 
 # ── the progress bar ─────────────────────────────────────────────────────────────────────

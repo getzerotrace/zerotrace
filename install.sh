@@ -252,13 +252,29 @@ MARK
     total=$(printf '%s\n' "$mark" | grep -c '')
     words=$(printf '%s\n' "$word" | grep -c '')
     top=$(( (total - words) / 2 ))
+    # A smooth vertical gradient: interpolate the four stops across every row, exactly the way
+    # `zerotrace` draws it. Four flat bands (the old behaviour) leave the top third one solid
+    # colour, so the card reads as a near-flat fill instead of catching the light. Truecolor
+    # interpolates per row; a 256-colour console keeps the four banded stops it cannot blend.
+    grad=''
+    if [ "$TRUECOLOR" = 1 ]; then
+      grad=$(awk -v rgb="$LOGO_RGB" -v n="$total" 'BEGIN{
+        gsub(/;/, " ", rgb); split(rgb, s, " "); span=3;
+        for (r=0; r<n; r++){ pos=(n<=1)?0:r/(n-1)*span; lo=int(pos); if(lo>span-1)lo=span-1; f=pos-lo;
+          for (c=1;c<=3;c++){ a=s[lo*3+c]; b=s[(lo+1)*3+c]; v[c]=int(a+(b-a)*f+0.5) }
+          printf "\033[1;38;2;%d;%d;%dm\n", v[1], v[2], v[3] } }')
+    fi
     # shellcheck disable=SC2086
     set -- $LOGO_ESC
     stops=$#
     row=0
     printf '%s\n' "$mark" | while IFS= read -r mline; do
-      band=$(( row * stops / total )); [ "$band" -ge "$stops" ] && band=$(( stops - 1 ))
-      eval "esc=\${$((band + 1))}"
+      if [ -n "$grad" ]; then
+        esc=$(printf '%s\n' "$grad" | sed -n "$((row + 1))p")
+      else
+        band=$(( row * stops / total )); [ "$band" -ge "$stops" ] && band=$(( stops - 1 ))
+        eval "esc=\${$((band + 1))}"
+      fi
       wline=''
       if [ "$row" -ge "$top" ] && [ "$row" -lt "$((top + words))" ]; then
         wline=$(printf '%s\n' "$word" | sed -n "$((row - top + 1))p")

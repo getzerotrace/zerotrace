@@ -166,6 +166,12 @@ case "${COLORTERM:-}" in
   truecolor|24bit) TRUECOLOR=1 ;;
   *) TRUECOLOR=0 ;;
 esac
+# Many truecolor terminals never set COLORTERM. Treat the ones `zerotrace` (rich) also renders
+# in truecolor as truecolor here too, so the installer's gradient matches the tool's instead of
+# dropping to the flatter 256-colour ramp.
+case "${TERM_PROGRAM:-}" in iTerm.app|vscode|WezTerm|ghostty|Hyper) TRUECOLOR=1 ;; esac
+case "${TERM:-}" in *-direct|*-truecolor|*-24bit) TRUECOLOR=1 ;; esac
+[ -n "${WT_SESSION:-}" ] && TRUECOLOR=1
 
 RAMP=''
 LOGO_ESC=''

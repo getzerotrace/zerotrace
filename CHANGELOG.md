@@ -4,6 +4,8 @@ All notable changes documented here, following [Keep a Changelog](https://keepac
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.3.2] - 2026-09-24
 ### Fixed
 - An interrupted install no longer throws away a nearly-complete download. `install.sh` keeps
   `~/.zerotrace/download`, re-fetches only `SHA256SUMS`, and reuses any asset that already
@@ -273,7 +275,8 @@ First public release.
 - Secrets other than AWS/PEM could reach the model unredacted.
 - The interactive menu never appeared under the pre-commit framework.
 
-[Unreleased]: https://github.com/getzerotrace/zerotrace/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/getzerotrace/zerotrace/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/getzerotrace/zerotrace/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/getzerotrace/zerotrace/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/getzerotrace/zerotrace/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/getzerotrace/zerotrace/compare/v0.1.0...v0.2.0

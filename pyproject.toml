@@ -1,6 +1,6 @@
 [project]
 name = "zerotrace"
-version = "0.3.1"
+version = "0.3.2"
 description = "Local-first pre-commit secret & PII guardrail for every repo on the machine"
 readme = "README.md"
 requires-python = ">=3.11"

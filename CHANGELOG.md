@@ -4,6 +4,15 @@ All notable changes documented here, following [Keep a Changelog](https://keepac
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- An interrupted install no longer throws away a nearly-complete download. `install.sh` keeps
+  `~/.zerotrace/download`, re-fetches only `SHA256SUMS`, and reuses any asset that already
+  matches it, so a run cut short mid-download finishes on the next attempt without fetching the
+  wheel again. The interrupt message now names the signal it received.
+- The installer banner draws the bold seven-row ZEROTRACE wordmark, matching what `zerotrace`
+  prints in the terminal, instead of the older thin five-row one.
+- The installer tagline sits beneath the wordmark, beside the mark, instead of dropping to the
+  foot of the card.
 
 ## [0.3.1] - 2026-09-24
 ### Changed

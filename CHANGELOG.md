@@ -4,6 +4,8 @@ All notable changes documented here, following [Keep a Changelog](https://keepac
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.3.0] - 2026-09-24
 ### Added
 - A guided installer. `install.sh` and `install.ps1` now walk six steps - this machine, the
   environment, Docker, the git hooks, the local model, and a validation that stages a
@@ -250,6 +252,7 @@ First public release.
 - Secrets other than AWS/PEM could reach the model unredacted.
 - The interactive menu never appeared under the pre-commit framework.
 
-[Unreleased]: https://github.com/getzerotrace/zerotrace/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/getzerotrace/zerotrace/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/getzerotrace/zerotrace/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/getzerotrace/zerotrace/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/getzerotrace/zerotrace/releases/tag/v0.1.0

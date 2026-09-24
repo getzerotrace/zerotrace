@@ -1,2 +1,2 @@
 """ZeroTrace: local-first pre-commit secret & PII guardrail."""
-__version__ = "0.2.0"
+__version__ = "0.3.0"

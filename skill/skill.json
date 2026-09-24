@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "zerotrace",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "kind": "skill",
   "title": "ZeroTrace — secret & PII guardrail",
   "summary": "Scan staged changes (or an AI-agent payload) for secrets and PII, explain each risk, and propose a human-approved fix. Local-first: no value leaves the machine.",

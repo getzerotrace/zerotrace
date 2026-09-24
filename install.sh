@@ -400,13 +400,20 @@ warn() { bar_clear; printf '      %s%s%s %s\n' "$Y" "$WARN_G" "$N" "$*"; bar_dra
 die()  { bar_clear; printf '\n  %s%s %s%s\n\n' "$R" "$CROSS" "$*" "$N" >&2; exit 1; }
 
 # Ctrl-C is a normal way to leave an installer and must not leave the terminal mid-frame.
+# The signal name is printed because a `curl | bash` run that is interrupted without anyone
+# touching the keyboard is almost always the terminal, a paste or a wrapper delivering the
+# signal, not the installer - and knowing INT from TERM says which.
 on_interrupt() {
   bar_clear
   [ "$TTY" = 1 ] && { tput cnorm 2>/dev/null || true; }
-  printf '\n  %s%s interrupted. Nothing further was installed.%s\n' "$Y" "$WARN_G" "$N" >&2
+  printf '\n  %s%s interrupted by SIG%s. Nothing further was installed.%s\n' \
+    "$Y" "$WARN_G" "${1:-INT}" "$N" >&2
+  printf '  %sanything already downloaded is kept, so running the installer again finishes it.%s\n' \
+    "$MUTE" "$N" >&2
   exit 130
 }
-trap on_interrupt INT TERM
+trap 'on_interrupt INT' INT
+trap 'on_interrupt TERM' TERM
 
 TICK_SLEEP=0.1
 sleep 0.1 2>/dev/null || TICK_SLEEP=1
@@ -652,6 +659,18 @@ verify_against_sums() {
       Download it again, or install from a clone."
 }
 
+# True when a file is already on disk AND matches its SHA256SUMS entry, so a download that a
+# previous (interrupted) run already completed and can be trusted is not fetched a second time.
+# Without a sha tool, or with the file absent or wrong, it returns false and the caller downloads.
+verified_cached() {
+  local dir="$1" name="$2" want got
+  [ -f "$dir/$name" ] || return 1
+  want=$(awk -v n="$name" '$2 == n || $2 == "*" n {print $1}' "$dir/SHA256SUMS" | head -1)
+  [ -n "$want" ] || return 1
+  got=$(sha256_of "$dir/$name")
+  [ -n "$got" ] && [ "$got" = "$want" ]
+}
+
 download() {
   curl --proto '=https' --tlsv1.2 -fsSL "$1" -o "$2"
 }
@@ -701,7 +720,11 @@ else
       or pass --ref main to build from source."
   fi
   case "$TAG" in v*) : ;; *) TAG="v$TAG" ;; esac
-  rm -rf "$ASSET_DIR"
+  # The download directory is NOT wiped: SHA256SUMS is always re-fetched (it names the current
+  # release), then each asset is reused only if it is already present and matches that manifest.
+  # A run cut short mid-download - the single most common way this installer fails, because a
+  # `curl | bash` shares its terminal with whatever sends the next signal - then finishes on the
+  # next attempt without re-fetching the megabytes it already has.
   mkdir -p "$ASSET_DIR"
   info "release $TAG"
   BASE="$REPO_URL/releases/download/$TAG"
@@ -709,10 +732,16 @@ else
     || die "could not download $TAG. Check the version, or install from a clone."
   WHEEL_NAME=$(awk '$2 ~ /\.whl$/ {print $2}' "$ASSET_DIR/SHA256SUMS" | sed 's/^\*//' | head -1 || true)
   [ -n "$WHEEL_NAME" ] || die "release $TAG has no wheel listed in SHA256SUMS."
-  spin "downloading $WHEEL_NAME" 25 download "$BASE/$WHEEL_NAME" "$ASSET_DIR/$WHEEL_NAME" \
-    || { show_log; die "could not download $WHEEL_NAME from $TAG"; }
-  download "$BASE/requirements-install.txt" "$ASSET_DIR/requirements-install.txt" \
-    || die "release $TAG has no requirements-install.txt; install from a clone instead."
+  if verified_cached "$ASSET_DIR" "$WHEEL_NAME"; then
+    info "reusing $WHEEL_NAME (already downloaded)"
+  else
+    spin "downloading $WHEEL_NAME" 25 download "$BASE/$WHEEL_NAME" "$ASSET_DIR/$WHEEL_NAME" \
+      || { show_log; die "could not download $WHEEL_NAME from $TAG"; }
+  fi
+  if ! verified_cached "$ASSET_DIR" requirements-install.txt; then
+    download "$BASE/requirements-install.txt" "$ASSET_DIR/requirements-install.txt" \
+      || die "release $TAG has no requirements-install.txt; install from a clone instead."
+  fi
 fi
 
 if [ "$SOURCE_KIND" = release ]; then

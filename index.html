@@ -385,18 +385,19 @@
   function hash(x,y){ var h = (x*73856093) ^ (y*19349663); h = (h ^ (h>>>13)) >>> 0; return h; }
 
   function buildFrame(lines, w, h, isWord){
-    // Centre the Heimdall by its VISUAL MASS, not its bounding box. The silhouette is denser on
-    // the face side, so centring the box still leaves the weight off to one side; centring the
-    // density-weighted centroid puts the mark where the eye reads it as middle. (For the
-    // symmetric wordmark the centroid is the box centre, so it is unaffected.) Vertically the
-    // ink already fills the box, so the bounding box is fine there.
-    var miny = Infinity, maxy = -Infinity, sumx = 0, n = 0, yy, xx;
+    // Centre the ink's bounding box (its visible extent) on the grid - that is the centre the
+    // eye reads for the Heimdall's horns and outline. The wordmark is dropped two rows so it
+    // lands on the middle rather than sitting a touch high like the tall mark.
+    var minx = Infinity, maxx = -Infinity, miny = Infinity, maxy = -Infinity, yy, xx;
     for (yy=0; yy<lines.length; yy++){ var rr=lines[yy];
       for (xx=0; xx<rr.length; xx++){ if (rr[xx] !== " "){
-        sumx += xx; n++; if (yy<miny) miny=yy; if (yy>maxy) maxy=yy; } } }
-    if (n === 0){ miny=maxy=0; n=1; }
-    var offx = Math.round((GRIDW - 1)/2 - sumx/n);
+        if (xx<minx) minx=xx; if (xx>maxx) maxx=xx; if (yy<miny) miny=yy; if (yy>maxy) maxy=yy; } } }
+    if (minx === Infinity){ minx=maxx=miny=maxy=0; }
+    var offx = Math.floor((GRIDW - (maxx-minx+1))/2) - minx;
     var offy = Math.floor((GRIDH - (maxy-miny+1))/2) - miny;
+    if (isWord) offy += 2;              // drop the wordmark to the middle
+    else offx += 3;                     // optical nudge: the mark's left outline is sparse, so
+                                        // its geometric centre reads a little left - push right
     var cells = [];
     for (var y=0; y<lines.length; y++){
       var row = lines[y];

@@ -33,6 +33,51 @@ RAMP_RGB = ((17, 94, 89), (17, 102, 93), (17, 111, 96), (17, 119, 100),
             (16, 160, 118), (16, 169, 122), (16, 177, 126), (16, 185, 129))
 RAMP_256 = (23, 23, 29, 29, 29, 29, 36, 36, 36, 42, 42, 42)
 
+# The logo gradient: the same emerald hue, brightest at the top and deepening toward the
+# bottom, so the mark catches the light instead of reading as one flat fill. It is walked
+# top-to-bottom across the art's rows and interpolated to however many rows the mark has.
+# Unlike the progress ramp this stays in the accent's green (not teal), and every stop still
+# clears the contrast bar on a light AND a dark terminal - shiny, not neon. The installers
+# carry the same numbers (see `LOGO_RGB` in install.sh / install.ps1); a test fails if they
+# drift.
+LOGO_RGB = ((16, 185, 129), (5, 150, 105), (4, 120, 87), (6, 95, 70))
+LOGO_256 = (36, 29, 29, 23)
+
+
+def _lerp(lo: tuple[int, int, int], hi: tuple[int, int, int], t: float) -> tuple[int, int, int]:
+    return tuple(round(a + (b - a) * t) for a, b in zip(lo, hi, strict=True))  # type: ignore[return-value]
+
+
+def logo_ramp(rows: int) -> list[tuple[int, int, int]]:
+    """`rows` RGB stops interpolated across `LOGO_RGB`, top (bright) to bottom (deep)."""
+    if rows <= 1:
+        return [LOGO_RGB[0]]
+    span = len(LOGO_RGB) - 1
+    out = []
+    for row in range(rows):
+        pos = row / (rows - 1) * span
+        lo = min(int(pos), span - 1)
+        out.append(_lerp(LOGO_RGB[lo], LOGO_RGB[lo + 1], pos - lo))
+    return out
+
+
+def logo_escapes(console: Console, rows: int) -> list[str]:
+    """One bold escape per logo row, so the art is painted as a vertical emerald gradient.
+
+    Empty strings when the console cannot colour (the caller then prints the art plain), and
+    256-colour indices when it cannot do truecolour - the gradient bands instead of blending,
+    which is the most a 256-colour cube can show.
+    """
+    system = console.color_system
+    if system is None:
+        return [""] * rows
+    if system == "truecolor":
+        return [f"\033[1;38;2;{r};{g};{b}m" for r, g, b in logo_ramp(rows)]
+    span = len(LOGO_256) - 1
+    picks = [LOGO_256[0] if rows <= 1 else LOGO_256[round(row / (rows - 1) * span)]
+             for row in range(rows)]
+    return [f"\033[1;38;5;{index}m" for index in picks]
+
 # Textual's theme takes the accent for focus and selection; `secondary` is the bar's
 # leading edge, so the apps and the installer share one palette.
 TUI_THEME = "zerotrace"

@@ -156,18 +156,27 @@ ACCENT_256='29'
 RAMP_RGB='17;94;89 17;102;93 17;111;96 17;119;100 17;127;104 17;135;107 16;144;111 16;152;115 16;160;118 16;169;122 16;177;126 16;185;129'
 RAMP_256='23 23 29 29 29 29 36 36 36 42 42 42'
 
+# The logo gradient (LOGO_RGB / LOGO_256 in src/zerotrace/ui/theme.py): the accent's own
+# green, bright at the top and deepening down the mark so it catches the light instead of
+# reading as one flat fill. Four stops, banded across the mark's rows.
+LOGO_RGB='16;185;129 5;150;105 4;120;87 6;95;70'
+LOGO_256='36 29 29 23'
+
 case "${COLORTERM:-}" in
   truecolor|24bit) TRUECOLOR=1 ;;
   *) TRUECOLOR=0 ;;
 esac
 
 RAMP=''
+LOGO_ESC=''
 if [ "$TTY" = 1 ]; then
   if [ "$TRUECOLOR" = 1 ]; then
     for rgb in $RAMP_RGB; do RAMP="$RAMP ${ESC}[38;2;${rgb}m"; done
+    for rgb in $LOGO_RGB; do LOGO_ESC="$LOGO_ESC ${ESC}[1;38;2;${rgb}m"; done
     ACCENT="${ESC}[1;38;2;${ACCENT_RGB}m"
   else
     for idx in $RAMP_256; do RAMP="$RAMP ${ESC}[38;5;${idx}m"; done
+    for idx in $LOGO_256; do LOGO_ESC="$LOGO_ESC ${ESC}[1;38;5;${idx}m"; done
     ACCENT="${ESC}[1;38;5;${ACCENT_256}m"
   fi
 else
@@ -181,8 +190,20 @@ say() { printf '%s\n' "$*"; }
 banner() {
   [ "$TTY" = 0 ] && { say "ZeroTrace installer"; say ""; return; }
   say ""
+  word=$(cat <<'WORDMARK'
+█████  █████  ████   █████  █████  ████    ███   █████  █████
+   ██  ██     ██ ██  ██ ██    ██   ██ ██  ██ ██  ██     ██
+  ██   ████   ████   ██ ██    ██   ████   █████  ██     ████
+ ██    ██     ██ ██  ██ ██    ██   ██ ██  ██ ██  ██     ██
+█████  █████  ██ ██  █████    ██   ██ ██  ██ ██  █████  █████
+WORDMARK
+)
   if [ "$UNICODE" = 1 ]; then
-    while IFS= read -r line; do printf '  %s%s%s\n' "$ACCENT" "$line" "$N"; done <<'MARK'
+    # The mark on the left, the ZEROTRACE wordmark centred to its right - the same
+    # composition `zerotrace` prints. The mark is 14 rows and the wordmark 5, so the wordmark
+    # sits against mark rows 4..8. Each row takes its gradient stop, so the mark and the name
+    # catch the light together, bright at the top and deep at the chin.
+    mark=$(cat <<'MARK'
 ███▀██████████████████▀███
 ██  ▀███████▀████████▀ ▀██
 ██   ▀████▀    ▀████▀   ██
@@ -198,18 +219,28 @@ banner() {
 ██████▄     ▄██▀▀ ▄███████
 ████████▄▄▄▄▄▄▄▄██████████
 MARK
-    say ""
+)
+    # shellcheck disable=SC2086
+    set -- $LOGO_ESC
+    row=0
+    printf '%s\n' "$mark" | while IFS= read -r mline; do
+      band=$(( row * 4 / 14 )); [ "$band" -gt 3 ] && band=3
+      eval "esc=\${$((band + 1))}"
+      wline=''
+      [ "$row" -ge 4 ] && [ "$row" -le 8 ] && wline=$(printf '%s\n' "$word" | sed -n "$((row - 3))p")
+      if [ -n "$wline" ]; then
+        printf '  %s%s   %s%s\n' "${esc:-$ACCENT}" "$mline" "$wline" "$N"
+      else
+        printf '  %s%s%s\n' "${esc:-$ACCENT}" "$mline" "$N"
+      fi
+      row=$((row + 1))
+    done
+  else
+    # ASCII console: no mark, the wordmark alone in the accent.
+    printf '%s\n' "$word" | while IFS= read -r line; do
+      printf '  %s%s%s\n' "$ACCENT" "$(printf '%s' "$line" | tr '█' '#')" "$N"
+    done
   fi
-  while IFS= read -r line; do
-    [ "$UNICODE" = 1 ] || line=$(printf '%s' "$line" | tr '█' '#')
-    printf '  %s%s%s\n' "$ACCENT" "$line" "$N"
-  done <<'WORDMARK'
-█████  █████  ████   █████  █████  ████    ███   █████  █████
-   ██  ██     ██ ██  ██ ██    ██   ██ ██  ██ ██  ██     ██
-  ██   ████   ████   ██ ██    ██   ████   █████  ██     ████
- ██    ██     ██ ██  ██ ██    ██   ██ ██  ██ ██  ██     ██
-█████  █████  ██ ██  █████    ██   ██ ██  ██ ██  █████  █████
-WORDMARK
   printf '\n  %ssecret & PII guardrail · no trace. no leaks. stays safe.%s\n\n' "$MUTE" "$N"
 }
 

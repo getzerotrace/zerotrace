@@ -57,6 +57,29 @@ def test_the_accent_is_not_one_of_the_status_colours():
         assert distance > 90, f"the accent is too close to {status}"
 
 
+def test_the_logo_gradient_only_ever_deepens_and_stays_the_accent_hue():
+    """Top-to-bottom it goes bright -> deep (a sheen from above), every stop clears the
+    contrast bar on both backgrounds, and it stays in the accent's green, not the teal ramp."""
+    levels = [_luminance(stop) for stop in theme.LOGO_RGB]
+    assert levels == sorted(levels, reverse=True), "the logo brightens toward the top"
+    for stop in theme.LOGO_RGB:
+        assert _contrast(stop, _WHITE) >= 2.5, stop
+        assert _contrast(stop, _BLACK) >= 2.5, stop
+        red, green, blue = stop
+        assert green > red and green > blue, f"{stop} is not a green"
+    assert len(theme.LOGO_RGB) == len(theme.LOGO_256)
+
+
+def test_logo_escapes_follow_what_the_console_can_show():
+    truecolor = theme.logo_escapes(_console("truecolor"), 6)
+    assert len(truecolor) == 6
+    assert truecolor[0] == "\033[1;38;2;{};{};{}m".format(*theme.LOGO_RGB[0])
+    assert truecolor[-1] == "\033[1;38;2;{};{};{}m".format(*theme.LOGO_RGB[-1])
+    indexed = theme.logo_escapes(_console("256"), 4)
+    assert indexed[0] == f"\033[1;38;5;{theme.LOGO_256[0]}m"
+    assert theme.logo_escapes(_console(None), 5) == [""] * 5
+
+
 def _console(color: str | None) -> Console:
     return Console(file=io.StringIO(), force_terminal=True, color_system=color)
 

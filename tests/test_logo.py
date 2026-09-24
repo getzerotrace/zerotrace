@@ -96,17 +96,21 @@ def test_no_color_disables_colour_and_unicode(monkeypatch):
 
 def test_colour_is_applied_only_when_the_console_has_a_colour_system(monkeypatch):
     monkeypatch.setenv("ZEROTRACE_LOGO", "ascii")
-    colour = _console(color="truecolor")
-    assert theme.accent_escape(colour) in logo.render(colour)
+    assert "\033[1;38;2;" in logo.render(_console(color="truecolor"))
     assert "\033[" not in logo.render(_console(color=None))
 
 
-def test_the_mark_and_the_name_are_drawn_in_the_brand_accent(monkeypatch):
-    """One accent for the logo, the panels, the progress bar and the installers."""
+def test_the_logo_is_painted_as_a_vertical_emerald_gradient(monkeypatch):
+    """The mark deepens top-to-bottom in the accent's own green - shiny, not one flat fill.
+
+    The gradient's first and last stops always land exactly on a row (row 0 and the last),
+    so both must appear; and a truecolour terminal gets exact stops, never a 256 index.
+    """
     monkeypatch.setenv("ZEROTRACE_LOGO", "unicode")
     art = logo.render(_console(color="truecolor"))
-    assert "38;2;{};{};{}".format(*theme.ACCENT_RGB) in art
-    assert "38;5;" not in art, "a truecolour terminal gets the exact accent, not an index"
+    assert "38;2;{};{};{}".format(*theme.LOGO_RGB[0]) in art, "the bright top stop"
+    assert "38;2;{};{};{}".format(*theme.LOGO_RGB[-1]) in art, "the deep bottom stop"
+    assert "38;5;" not in art, "a truecolour terminal gets exact stops, not an index"
 
 
 # --- width fallbacks ------------------------------------------------------------------

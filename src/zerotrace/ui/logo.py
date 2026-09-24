@@ -200,12 +200,18 @@ def _compose(mark: list[str], right: list[str]) -> list[str]:
 
 
 def _paint(lines: list[str], console: Console) -> str:
-    """Anything not already carrying its own colour (the card does) is drawn in the accent."""
+    """Paint the art as a vertical emerald gradient, top-to-bottom.
+
+    A line that already carries its own colour (the card paints itself dark-on-light) is left
+    untouched; everything else takes the gradient stop for its row, so the mark and the
+    wordmark beside it catch the light on the same rows instead of one flat fill.
+    """
     body = "\n".join(lines)
     if console.color_system is None or not capability.decorations_allowed():
         return body + "\n"
-    accent = theme.accent_escape(console)
-    painted = [line if "\033[" in line else f"{accent}{line}{_RESET}" for line in lines]
+    escapes = theme.logo_escapes(console, len(lines))
+    painted = [line if "\033[" in line else f"{escape}{line}{_RESET}"
+               for escape, line in zip(escapes, lines, strict=True)]
     return "\n".join(painted) + "\n"
 
 

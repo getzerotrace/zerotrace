@@ -132,6 +132,11 @@ if ($script:Tty -and -not ($Ascii -or $env:ZEROTRACE_ASCII)) {
 $AccentRgb = "5;150;105"
 $RampRgb = @("17;94;89", "17;102;93", "17;111;96", "17;119;100", "17;127;104", "17;135;107",
              "16;144;111", "16;152;115", "16;160;118", "16;169;122", "16;177;126", "16;185;129")
+# The logo gradient (LOGO_RGB in src/zerotrace/ui/theme.py): the accent's own green, bright at
+# the top and deepening down the mark so it catches the light. Four stops, banded across the
+# mark's rows. tests/test_installers.py fails if these drift from the Python copy.
+$LogoRgb = @("16;185;129", "5;150;105", "4;120;87", "6;95;70")
+$LogoEsc = @($LogoRgb | ForEach-Object { if ($script:Vt) { "$E[1;38;2;${_}m" } else { "" } })
 $Accent = $(if ($script:Vt) { "$E[1;38;2;${AccentRgb}m" } else { "" })
 $Reset  = $(if ($script:Vt) { "$E[0m" } else { "" })
 $Dim    = $(if ($script:Vt) { "$E[2m" } else { "" })
@@ -153,38 +158,48 @@ function Restore-Console {
 function Write-Banner {
     if (-not $script:Tty) { Write-Host "ZeroTrace installer"; return }
     Write-Host ""
-    if ($script:Unicode) {
-        # The same mark `zerotrace install` prints (src/zerotrace/ui/assets/mark.small.uni.txt,
-        # inverted so the cut-outs that carry the face stay unpainted).
-        # Encoded F/T/B (full, upper half, lower half) rather than written with the block
-        # characters themselves: a .ps1 that is not ASCII has to carry a BOM for Windows
-        # PowerShell 5.1 to read it correctly, and a file that renders as mojibake on the one
-        # console this script exists for is not worth the shorter source.
-        # tests/test_installers.py checks this against ui/assets/mark.small.uni.txt.
-        $mark = @(
-            'FFFTFFFFFFFFFFFFFFFFFFTFFF', 'FF  TFFFFFFFTFFFFFFFFT TFF',
-            'FF   TFFFFT    TFFFFT   FF', 'FF  TBB      BFB   BF  FFF',
-            'FFFB  T      FFFF TT  BFFF', 'FFFFF       FFTTFF  BFFFFF',
-            'FFFFF       F       FFFFFF', 'FFFFT    B    BBB   TFFFFF',
-            'FFFFB    T    TT     BFFFF', 'FFFF       TTFB B    FFFFF',
-            'FFFFBB       FTTF  BBFFFFF', 'FFFFFT       T  BB TFFFFFF',
-            'FFFFFFB     BFFTT BFFFFFFF', 'FFFFFFFFBBBBBBBBFFFFFFFFFF')
-        foreach ($row in $mark) {
-            $line = $row.Replace('F', [string][char]0x2588).Replace('T', [string][char]0x2580)
-            $line = $line.Replace('B', [string][char]0x2584)
-            Write-Host ("  " + $Accent + $line + $Reset)
-        }
-        Write-Host ""
-    }
+    # The mark, encoded F/T/B (full, upper half, lower half) rather than written with the block
+    # characters themselves: a .ps1 that is not ASCII has to carry a BOM for Windows PowerShell
+    # 5.1 to read it correctly, and a file that renders as mojibake on the one console this
+    # script exists for is not worth the shorter source.
+    # tests/test_installers.py checks this against ui/assets/mark.small.uni.txt.
+    $mark = @(
+        'FFFTFFFFFFFFFFFFFFFFFFTFFF', 'FF  TFFFFFFFTFFFFFFFFT TFF',
+        'FF   TFFFFT    TFFFFT   FF', 'FF  TBB      BFB   BF  FFF',
+        'FFFB  T      FFFF TT  BFFF', 'FFFFF       FFTTFF  BFFFFF',
+        'FFFFF       F       FFFFFF', 'FFFFT    B    BBB   TFFFFF',
+        'FFFFB    T    TT     BFFFF', 'FFFF       TTFB B    FFFFF',
+        'FFFFBB       FTTF  BBFFFFF', 'FFFFFT       T  BB TFFFFFF',
+        'FFFFFFB     BFFTT BFFFFFFF', 'FFFFFFFFBBBBBBBBFFFFFFFFFF')
     $wordmark = @(
         '#####  #####  ####   #####  #####  ####    ###   #####  #####',
         '   ##  ##     ## ##  ## ##    ##   ## ##  ## ##  ##     ##',
         '  ##   ####   ####   ## ##    ##   ####   #####  ##     ####',
         ' ##    ##     ## ##  ## ##    ##   ## ##  ## ##  ##     ##',
         '#####  #####  ## ##  #####    ##   ## ##  ## ##  #####  #####')
-    foreach ($row in $wordmark) {
-        $line = $(if ($script:Unicode) { $row.Replace('#', [string][char]0x2588) } else { $row })
-        Write-Host ("  " + $Accent + $line + $Reset)
+    if ($script:Unicode) {
+        # The mark on the left, the ZEROTRACE wordmark centred to its right - the same
+        # composition `zerotrace` prints. 14 mark rows, 5 wordmark rows, so the wordmark sits
+        # against rows 4..8. Each row takes its gradient stop, bright at the top and deep at
+        # the chin, so the mark and the name catch the light together.
+        $top = [int][Math]::Floor(($mark.Count - $wordmark.Count) / 2)
+        for ($i = 0; $i -lt $mark.Count; $i++) {
+            $line = $mark[$i].Replace('F', [string][char]0x2588).Replace('T', [string][char]0x2580)
+            $line = $line.Replace('B', [string][char]0x2584)
+            $j = $i - $top
+            if ($j -ge 0 -and $j -lt $wordmark.Count) {
+                $line = $line + "   " + $wordmark[$j].Replace('#', [string][char]0x2588)
+            }
+            $band = [int][Math]::Floor($i * $LogoEsc.Count / $mark.Count)
+            if ($band -ge $LogoEsc.Count) { $band = $LogoEsc.Count - 1 }
+            $esc = $(if ($LogoEsc[$band]) { $LogoEsc[$band] } else { $Accent })
+            Write-Host ("  " + $esc + $line + $Reset)
+        }
+    } else {
+        # ASCII console: no mark, the wordmark alone in the accent.
+        foreach ($row in $wordmark) {
+            Write-Host ("  " + $Accent + $row + $Reset)
+        }
     }
     Write-Host ""
     Write-Host ("  " + $Dim + "secret & PII guardrail " + [string][char]0x00B7 +

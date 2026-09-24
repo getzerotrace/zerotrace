@@ -25,12 +25,12 @@ machines, Docker, and uninstalling.
 The files it serves are not copies kept in step by hand. `.github/workflows/site.yml` in this
 repository publishes them on every `release: published`:
 
-| Served as | Comes from |
-| --- | --- |
-| `index.html` | `site/index.html` in this repository |
-| `install.sh`, `install.ps1` | the **newest release's** stamped installers, so the one-liner installs a released version rather than whatever is on `main` |
-| `SHA256SUMS` | that release's checksums, so a download can be verified |
-| `VERSION` | which release the three files above came from |
+| Served as                       | Comes from                                                                                                                         |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `index.html`                  | `site/index.html` in this repository                                                                                             |
+| `install.sh`, `install.ps1` | the**newest release's** stamped installers, so the one-liner installs a released version rather than whatever is on `main` |
+| `SHA256SUMS`                  | that release's checksums, so a download can be verified                                                                            |
+| `VERSION`                     | which release the three files above came from                                                                                      |
 
 One-time setup, if the site is ever rebuilt:
 
@@ -56,7 +56,7 @@ pipx install zerotrace && zerotrace install --global && zerotrace doctor
 ```
 
 Reading the script before running it is always reasonable: it is the same file the one-liner
-fetches, served at <https://getzerotrace.github.io/install.sh>, and `SHA256SUMS` beside it
+fetches, served at [https://getzerotrace.github.io/install.sh](https://getzerotrace.github.io/install.sh), and `SHA256SUMS` beside it
 covers the release copy.
 
 Fleet rollouts do not use the short URL. `deploy/jamf-postinstall.sh` and
@@ -154,15 +154,15 @@ virtualenv it owns, which is also what makes uninstalling exact.
 
 ### Options
 
-| Option | What it is for |
-| --- | --- |
-| `--version vX.Y.Z` | a particular release instead of the latest |
-| `--ref main` | build from a git branch - development |
-| `--from <dir>` | install from release files already downloaded: air-gapped machines, CI |
-| `--no-model` | skip Docker and the model entirely (several GB on a first run) |
-| `--with-pii` | also install the Presidio NER engine (not hash-locked) |
-| `--verbose` | print every line instead of one progress bar |
-| `--ascii` | draw with ASCII only |
+| Option               | What it is for                                                         |
+| -------------------- | ---------------------------------------------------------------------- |
+| `--version vX.Y.Z` | a particular release instead of the latest                             |
+| `--ref main`       | build from a git branch - development                                  |
+| `--from <dir>`     | install from release files already downloaded: air-gapped machines, CI |
+| `--no-model`       | skip Docker and the model entirely (several GB on a first run)         |
+| `--with-pii`       | also install the Presidio NER engine (not hash-locked)                 |
+| `--verbose`        | print every line instead of one progress bar                           |
+| `--ascii`          | draw with ASCII only                                                   |
 
 ### Installing without a network
 
@@ -186,16 +186,15 @@ The AI tie-break runs `ollama/ollama` (pinned by version *and* digest in
 `docker/docker-compose.yml`, which ships inside the wheel) with Qwen2.5-Coder 3B. It is
 optional, and the installer treats it that way.
 
-| State | What you are told | Effect |
-| --- | --- | --- |
-| running | the image is pulled and `zerotrace-ollama` started | MEDIUM findings are settled by the model |
-| installed, stopped | `start Docker Desktop (open -a Docker) …, then run zerotrace model up` | HIGH/CRITICAL still block, MEDIUM warns |
-| permission denied | `sudo usermod -aG docker $USER`, and that this group is root-equivalent | as above |
-| not installed | the install command for this OS, plus native Ollama as an alternative | as above |
-| unresponsive | that the daemon did not answer in 15s | as above |
+| State              | What you are told                                                         | Effect                                   |
+| ------------------ | ------------------------------------------------------------------------- | ---------------------------------------- |
+| running            | the image is pulled and`zerotrace-ollama` started                       | MEDIUM findings are settled by the model |
+| installed, stopped | `start Docker Desktop (open -a Docker) …, then run zerotrace model up` | HIGH/CRITICAL still block, MEDIUM warns  |
+| permission denied  | `sudo usermod -aG docker $USER`, and that this group is root-equivalent | as above                                 |
+| not installed      | the install command for this OS, plus native Ollama as an alternative     | as above                                 |
+| unresponsive       | that the daemon did not answer in 15s                                     | as above                                 |
 
-`zerotrace model status` asks again at any time; `zerotrace model up` starts it; `zerotrace
-model down` stops it and keeps the image and weights, `--purge` removes those too.
+`zerotrace model status` asks again at any time; `zerotrace model up` starts it; `zerotrace model down` stops it and keeps the image and weights, `--purge` removes those too.
 
 ## Uninstall
 
@@ -249,8 +248,8 @@ What ZeroTrace does automatically:
 | Windows Terminal, iTerm2, GNOME Terminal, VS Code, JetBrains | shaded Unicode mark, colour, rounded box borders                             |
 | Kitty, WezTerm, Ghostty, iTerm2, Konsole                     | inline PNG logo via the terminal's image protocol                            |
 | any truecolour UTF-8 terminal                                | the mark as designed: dark silhouette on a light card (fg+bg per half block) |
-| legacy `cmd.exe`, PowerShell 5.1 (cp437/cp1252)             | ASCII mark, ASCII box borders, `+`/`x` instead of `✓`/`✗`           |
-| redirected output, CI logs, `NO_COLOR`                      | no colour, no image escapes, no in-place redraw                              |
+| legacy`cmd.exe`, PowerShell 5.1 (cp437/cp1252)             | ASCII mark, ASCII box borders,`+`/`x` instead of `✓`/`✗`           |
+| redirected output, CI logs,`NO_COLOR`                      | no colour, no image escapes, no in-place redraw                              |
 | narrow terminals (< 60 columns)                              | smaller mark, then wordmark only                                             |
 
 Keyboard and mouse: the hook's fix menu and the full-screen apps take `↑`/`↓` and `Enter`

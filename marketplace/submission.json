@@ -1,6 +1,6 @@
 {
   "name": "zerotrace",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "kind": "skill",
   "title": "ZeroTrace — secret & PII guardrail for commits and AI agents",
   "summary": "Blocks secrets and PII at commit time in every repo on a machine, and sanitises AI-agent payloads at runtime. Deterministic first; a local model only settles ambiguous cases and never sees a value.",

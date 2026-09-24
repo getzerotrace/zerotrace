@@ -4,6 +4,8 @@ All notable changes documented here, following [Keep a Changelog](https://keepac
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.3.1] - 2026-09-24
 ### Changed
 - The landing page's ASCII hero is one continuous, grid-locked animation: the Heimdall mark
   forms, disperses into the ZEROTRACE wordmark, then streams into flowing code-rain and loops,
@@ -262,7 +264,8 @@ First public release.
 - Secrets other than AWS/PEM could reach the model unredacted.
 - The interactive menu never appeared under the pre-commit framework.
 
-[Unreleased]: https://github.com/getzerotrace/zerotrace/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/getzerotrace/zerotrace/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/getzerotrace/zerotrace/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/getzerotrace/zerotrace/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/getzerotrace/zerotrace/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/getzerotrace/zerotrace/releases/tag/v0.1.0

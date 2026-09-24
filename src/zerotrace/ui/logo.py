@@ -2,9 +2,9 @@
 
 Tiers, richest-supported-first:
   1. png     inline image via the Kitty or iTerm2 graphics protocol
-  2. card    the artwork as designed - dark silhouette on a light card - using a terminal
-             cell's two colours (fg + bg) per half block, so the white cut-outs that make
-             the face readable stay white instead of becoming holes in a white blob
+  2. card    the mark as a dark silhouette on a vertical emerald-gradient card, using a
+             terminal cell's two colours (fg + bg) per half block - so the cut-outs that make
+             the face readable show the gradient instead of becoming holes in a blob
   3. unicode monochrome half-block silhouette, for a UTF-8 terminal without truecolour
   4. ascii   density-ramp art; safe on cp437/cp1252 consoles
   5. text    just the wordmark lines, when the terminal is too narrow for any mark
@@ -31,10 +31,11 @@ _GUTTER = "   "
 _RESET = "\033[0m"
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
-# The card: the mark in the accent on a light page. Painting the silhouette itself is what
-# keeps the cut-outs (eyes, beard, horn) light, so the face stays readable - a mark painted
-# as light-on-accent turns those cut-outs into holes in a blob.
-_MARK, _PAGE = theme.ACCENT_RGB, (245, 245, 245)
+# The card: a dark silhouette drawn ON a vertical emerald-gradient page. The background is the
+# gradient (bright at the top, deepening toward the bottom, the same ramp as the wordmark); the
+# ink is near-black. Painting the silhouette itself - not the page - keeps the cut-outs (eyes,
+# beard, horn) showing the gradient, so the face stays readable instead of holes in a blob.
+_MARK_INK = (6, 18, 14)
 _WORDMARK = "ZEROTRACE"
 _TAGLINE = ("secret & PII guardrail", "commits · AI agents · local-first",
             "no trace. no leaks. stays safe.")
@@ -133,21 +134,35 @@ def _inverted_mask(mark: list[str]) -> list[str]:
     return [line.translate(_INVERT) for line in _centred(mark)]
 
 
+def _logo_256_picks(rows: int) -> list[int]:
+    """One 256-colour index per row, walked top-to-bottom across the logo gradient."""
+    span = len(theme.LOGO_256) - 1
+    if rows <= 1:
+        return [theme.LOGO_256[0]]
+    return [theme.LOGO_256[round(row / (rows - 1) * span)] for row in range(rows)]
+
+
 def _card_lines(mark: list[str], console: Console) -> list[str]:
-    """Paint the silhouette mask as the artwork: dark mark on a light card.
+    """Paint the silhouette mask as the artwork: a dark mark on an emerald-gradient card.
 
     The mask already says which half of each cell is the mark ("▀" top, "▄" bottom, "█"
-    both), so printing it with a dark foreground on a light background *is* the logo -
-    the cut-outs that make the face readable stay light instead of becoming holes.
-    Colour is applied here rather than baked into the asset, so 256-colour terminals get
-    it too and NO_COLOR can still turn it off.
+    both), so printing it with a near-black foreground on the gradient background *is* the
+    logo - each row takes its own stop of the vertical gradient for its page, and the
+    cut-outs that make the face readable show that gradient instead of becoming holes.
+    Colour is applied here rather than baked into the asset, so 256-colour terminals get it
+    too and NO_COLOR can still turn it off.
     """
+    lines = _centred(mark)
+    if not lines:
+        return []
     if console.color_system == "truecolor":
-        paint = (f"\033[38;2;{_MARK[0]};{_MARK[1]};{_MARK[2]};"
-                 f"48;2;{_PAGE[0]};{_PAGE[1]};{_PAGE[2]}m")
-    else:
-        paint = f"\033[38;5;{theme.ACCENT_256};48;5;255m"
-    return [f"{paint}{line}{_RESET}" for line in _centred(mark)]
+        ramp = theme.logo_ramp(len(lines))
+        return [f"\033[38;2;{_MARK_INK[0]};{_MARK_INK[1]};{_MARK_INK[2]};"
+                f"48;2;{r};{g};{b}m{line}{_RESET}"
+                for line, (r, g, b) in zip(lines, ramp, strict=True)]
+    picks = _logo_256_picks(len(lines))
+    return [f"\033[38;5;16;48;5;{idx}m{line}{_RESET}"
+            for line, idx in zip(lines, picks, strict=True)]
 
 
 def _ascii_safe(text: str) -> str:
@@ -215,17 +230,17 @@ def _paint(lines: list[str], console: Console) -> str:
     return "\n".join(painted) + "\n"
 
 
-def _accented(lines: list[str], console: Console) -> list[str]:
-    """Paint lines the accent here rather than leaving them to `_paint`.
+def _gradient_lines(lines: list[str], console: Console) -> list[str]:
+    """Paint each line with its own stop of the vertical emerald gradient.
 
-    `_compose` joins the mark and the wordmark into one string, and the card tier's mark
-    already carries its own escapes - so the joined line looks "already coloured" to `_paint`
-    and the name beside the card came out in the terminal's default white.
+    Used for the card tier's wordmark, so the name deepens top-to-bottom just like the mark
+    beside it. `_compose` joins the mark and the wordmark into one string, and the card's mark
+    already carries its own escapes - so painting the name here keeps it from coming out in the
+    terminal's default white when `_paint` skips the "already coloured" joined line.
     """
-    accent = theme.accent_escape(console)
-    if not accent:
-        return lines
-    return [f"{accent}{line}{_RESET}" if line else line for line in lines]
+    escapes = theme.logo_escapes(console, len(lines))
+    return [f"{esc}{line}{_RESET}" if (esc and line) else line
+            for esc, line in zip(escapes, lines, strict=True)]
 
 
 def _composition(console: Console, unicode_tier: bool, card: bool = False) -> list[str]:
@@ -248,7 +263,7 @@ def _composition(console: Console, unicode_tier: bool, card: bool = False) -> li
     ascii_only = not unicode_tier and not card
     # Only the card carries its own colour; everything else is painted once by `_paint`.
     def right(lines: list[str]) -> list[str]:
-        return _accented(lines, console) if card else lines
+        return _gradient_lines(lines, console) if card else lines
 
     if big and width >= big_width + len(_GUTTER) + wide_width:
         return _compose(big, right(wide + ["", _TAGLINE[-1]]))

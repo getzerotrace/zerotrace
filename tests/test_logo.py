@@ -163,18 +163,21 @@ def test_missing_assets_degrade_to_the_wordmark(monkeypatch):
 
 # --- the card rendering (the mark as designed: the accent on a light card) --------------
 
-def test_card_tier_paints_a_light_background(monkeypatch):
+def test_card_tier_paints_a_dark_mark_on_the_emerald_gradient(monkeypatch):
     monkeypatch.setenv("ZEROTRACE_LOGO", "card")
     art = logo.render(_console(width=120))
-    assert "\033[48;2;245;245;245m" in art or "48;2;245;245;245m" in art
-    assert "38;2;{};{};{}".format(*theme.ACCENT_RGB) in art, \
-        "the silhouette itself is painted, so its cut-outs stay light"
+    # the page is the vertical emerald gradient (its first and last stops each land on a row)
+    assert "48;2;{};{};{}".format(*theme.LOGO_RGB[0]) in art, "the bright top of the card"
+    assert "48;2;{};{};{}".format(*theme.LOGO_RGB[-1]) in art, "the deep bottom of the card"
+    # the silhouette itself is painted in a near-black ink, so its cut-outs show the gradient
+    assert "38;2;{};{};{}".format(*logo._MARK_INK) in art
 
 
 def test_card_tier_falls_back_to_256_colour(monkeypatch):
     monkeypatch.setenv("ZEROTRACE_LOGO", "card")
     art = logo.render(_console(width=120, color="256"))
-    assert f"\033[38;5;{theme.ACCENT_256};48;5;255m" in art
+    assert f"48;5;{theme.LOGO_256[0]}m" in art, "a gradient background stop"
+    assert "38;5;16;" in art, "the near-black mark ink"
 
 
 def test_card_is_used_automatically_on_a_colour_terminal():

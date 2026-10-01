@@ -138,8 +138,10 @@ jobs:
     # The artifacts themselves: the suite, the sdist and wheel, the installers stamped with
     # this version, the hash-locked requirements they install, and the checksums that tie the
     # whole set together.
+    # `bump` is skipped on a push or a tag, and a skipped job upstream skips every job below it
+    # unless its own condition says otherwise: hence !cancelled() here and in the jobs after it.
     needs: plan
-    if: needs.plan.outputs.release == 'true'
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.release == 'true' }}
     runs-on: ubuntu-latest
     env:
       TAG: ${{ needs.plan.outputs.tag }}
@@ -207,7 +209,7 @@ jobs:
     # and installs from them exactly as a user would, then removes it again. Publication
     # happens after this passes, so a broken installer never reaches a release page.
     needs: [plan, package]
-    if: needs.plan.outputs.release == 'true'
+    if: ${{ !cancelled() && needs.package.result == 'success' && needs.plan.outputs.release == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -257,7 +259,7 @@ jobs:
     # (docs/DEPLOYMENT.md "No Python on laptops"). One per OS; architecture is whatever the
     # runner's default is (e.g. macos-latest is arm64).
     needs: plan
-    if: needs.plan.outputs.release == 'true'
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.release == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -306,7 +308,7 @@ jobs:
 
   release:
     needs: [plan, package, verify-install, build-binaries]
-    if: needs.plan.outputs.release == 'true'
+    if: ${{ !cancelled() && needs.plan.outputs.release == 'true' && needs.package.result == 'success' && needs.verify-install.result == 'success' && needs.build-binaries.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write             # pushes the annotated tag and publishes the release

@@ -32,6 +32,9 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `pipeline` (detect-secrets) is imported after the spinner starts instead of before, so the
   slowest import is no longer a blank screen, and `zerotrace version`, `doctor` and `install`
   no longer pay for it.
+- The release workflow now releases a version bump pushed to main, and a tag pushed by hand, as
+  `docs/RELEASING.md` says. `bump` only runs from the button, and a skipped job upstream skipped
+  every job below it, so a push that raised the version ran `plan` and then nothing.
 
 ### Removed
 - The scripted demo: `demo/run_demo.ps1`, `demo/run_demo.sh`, `demo/render_fixtures.py` and the

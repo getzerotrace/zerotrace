@@ -296,3 +296,14 @@ def test_the_real_changelog_notes_for_the_current_version_are_extractable():
     """What the next run of the release workflow will read from this checkout."""
     version = release.current_version()
     assert release.notes(f"v{version}").startswith(f"## [{version}] - ")
+
+
+def test_the_jobs_below_plan_still_run_when_bump_is_skipped():
+    """`bump` only runs from the button. On a push or a tag it is skipped, and a skipped job
+    upstream skips every job below it unless its own condition says otherwise - which is how a
+    version bump pushed to main once ran `plan` and then nothing."""
+    import yaml
+    path = ROOT / ".github" / "workflows" / "release.yml"
+    jobs = yaml.safe_load(path.read_text(encoding="utf-8"))["jobs"]
+    for name in ("package", "verify-install", "build-binaries", "release"):
+        assert "!cancelled()" in jobs[name]["if"], name

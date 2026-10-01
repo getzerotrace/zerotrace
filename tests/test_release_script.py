@@ -30,15 +30,16 @@ release = _load()
 @pytest.fixture
 def project(tmp_path) -> Path:
     """The version files and CHANGELOG, copied, with one note waiting under [Unreleased]."""
+    root = tmp_path / "project"        # a subdirectory: tmp_path stays free for what lies outside it
     for name in _FILES:
-        (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(ROOT / name, tmp_path / name)
-    changelog = tmp_path / "CHANGELOG.md"
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(ROOT / name, root / name)
+    changelog = root / "CHANGELOG.md"
     text = changelog.read_text(encoding="utf-8")
     body, end = release._unreleased_span(text)
     changelog.write_text(text[:body] + "### Fixed\n- A fix worth releasing.\n\n" + text[end:],
                          encoding="utf-8")
-    return tmp_path
+    return root
 
 
 def _git(root: Path, *args: str) -> str:
@@ -248,8 +249,9 @@ def test_stamping_refuses_to_write_outside_the_repository(project, escape):
         release.stamp("v1.2.3", escape, root=project)
 
 
-def test_a_symlink_that_leaves_the_repository_is_refused(project, tmp_path_factory):
-    outside = tmp_path_factory.mktemp("elsewhere")
+def test_a_symlink_that_leaves_the_repository_is_refused(project, tmp_path):
+    outside = tmp_path / "elsewhere"
+    outside.mkdir()
     link = project / "dist"
     link.symlink_to(outside, target_is_directory=True)
     with pytest.raises(release.ReleaseError, match="outside the repository"):

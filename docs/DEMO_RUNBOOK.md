@@ -1,7 +1,8 @@
 # Demo runbook
 
-A live, click-by-click script for `demo/run_demo.ps1` (Windows) / `demo/run_demo.sh` (macOS/Linux).
-Rehearsed end-to-end on Windows; see "Known rough edges" below before presenting.
+A live script for showing ZeroTrace. There is no generator: each beat is run by hand in a throwaway
+repository (`git init` in an empty folder, stage what the beat names, `git commit`). See "Known
+rough edges" below before presenting.
 
 ## Before you start
 
@@ -12,9 +13,9 @@ Rehearsed end-to-end on Windows; see "Known rough edges" below before presenting
 3. Prefer Windows Terminal (UTF-8) over legacy `powershell.exe`/`cmd.exe` consoles — the box-drawing
    table glyphs render as `? / à` mojibake on legacy codepage-437 consoles. The tool never crashes
    either way (falls back to `?` instead of raising `UnicodeEncodeError`), it's cosmetic only.
-4. Run `pwsh -File .\demo\run_demo.ps1` (interactive, pauses between scenes) or add `-Auto` for a
-   silent rehearsal / CI smoke check. Everything is sandboxed under `%TEMP%\zerotrace-demo` — your
-   real `.gitconfig` and repos are never touched.
+4. Use a fresh throwaway folder for every beat and delete it afterwards. The guardrail is global, so
+   the hooks that run are the real ones from `zerotrace install --global`; for beats 0 and 1 use a
+   machine (or run `zerotrace uninstall --global` first) where it is not installed yet.
 
 ## The 8 beats
 
@@ -37,10 +38,7 @@ Rehearsed end-to-end on Windows; see "Known rough edges" below before presenting
   gracefully. Fix for the demo: use Windows Terminal with UTF-8, or `chcp 65001` first.
 - **`zerotrace review`'s interactive prompts need a real TTY.** They will not work if the demo is
   run through a redirected/piped terminal (e.g. from CI or a tool-call subprocess) — always
-  present from a real terminal window, per the script's own header comment.
-- **Exit code is intentionally non-zero at the end of the script.** The last few demo commands are
-  *supposed* to be blocked (that's the point), so `run_demo.ps1` naturally exits non-zero. This is
-  expected, not a bug.
+  present from a real terminal window.
 
 ## Fallback if the model is unreachable
 

@@ -28,7 +28,7 @@ gate status is what you show when someone asks whether Sonar is passing.
 
 Automatic Analysis reads **`.sonarcloud.properties`** and ignores everything else. That file
 declares the sources, `sonar.tests=tests`, the Python versions and the exclusions, so the
-format-valid fake credentials in `tests/` and `demo/fixtures/` are not reported as leaks.
+format-valid fake credentials in `tests/` are not reported as leaks.
 
 ### Coverage
 
@@ -59,5 +59,5 @@ locks.
 
 - `src/zerotrace/detectors/` is full of credential-shaped regexes and keyword lists. That is the
   product, not a leak. Review anything Sonar reports there before excluding it.
-- `tests/` and `demo/fixtures/` hold format-valid **fake** credentials, generated at run time.
-  Both configuration files mark the former as tests and exclude the latter.
+- `tests/` holds format-valid **fake** credentials, generated at run time. The configuration
+  files mark it as tests.

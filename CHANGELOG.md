@@ -31,6 +31,13 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   slowest import is no longer a blank screen, and `zerotrace version`, `doctor` and `install`
   no longer pay for it.
 
+### Removed
+- The scripted demo: `demo/run_demo.ps1`, `demo/run_demo.sh`, `demo/render_fixtures.py` and the
+  `demo/fixtures/` templates they rendered into throwaway repositories. The demo is run by hand
+  in throwaway repositories now, and `docs/DEMO_RUNBOOK.md` keeps the running order. CI no longer
+  lints `demo/`, and the SonarCloud sources and exclusions drop the demo paths; the gitleaks
+  allowlist keeps `demo/fixtures/` because the templates are still in history.
+
 ## [0.3.2] - 2026-09-24
 ### Fixed
 - An interrupted install no longer throws away a nearly-complete download. `install.sh` keeps

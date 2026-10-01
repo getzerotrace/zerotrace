@@ -18,8 +18,8 @@ paths = [
   '''^\.secrets\.baseline$''',
   # This file, and anything explaining a finding, will quote patterns by their nature.
   '''^\.gitleaks\.toml$''',
-  # Rendered demo repositories carry deliberately fake credentials (demo/render_fixtures.py
-  # builds them at run time); the fixtures they come from are placeholders by design.
+  # The scripted demo's templates, deleted since and still in history: placeholders
+  # ({{gen:...}}) that a renderer turned into deliberately fake credentials at run time.
   '''^demo/fixtures/''',
   # The original scaffold's demo script, deleted in v0.2.0 and still in history. Its
   # "ambiguous token" was invented to give the model something to judge.

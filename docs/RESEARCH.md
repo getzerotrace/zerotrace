@@ -105,7 +105,7 @@ Why this matters for us:
 Our defensible combination, stated plainly: **one machine-wide install, secrets *and* PII in one
 policy engine, a bounded local AI that never sees the value, and a fix rather than a failure.**
 
-## 7. Scenarios to demo or test (each maps to a fixture we already ship)
+## 7. Scenarios to demo or test
 
 | #  | Scenario                                                                   | Vault in place?                  | What ZeroTrace does                                  |
 | -- | -------------------------------------------------------------------------- | -------------------------------- | ---------------------------------------------------- |

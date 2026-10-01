@@ -25,7 +25,7 @@ jobs:
       # broken dev extra (it once lacked textual entirely), so fail loudly instead.
       - name: The dev extra must carry the TUI stack
         run: python -c "import textual, pytest_asyncio"
-      - run: ruff check src tests demo
+      - run: ruff check src tests
       - run: mypy src
       - run: pytest -q --cov=zerotrace --cov-report=xml
 

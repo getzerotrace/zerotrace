@@ -117,15 +117,11 @@ call is sanitised rather than blocked outright, so agent workflows keep working.
 ## The live demo
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 zerotrace model up                                    # local Qwen2.5-Coder 3B (optional)
-./demo/run_demo.sh                                    # macOS / Linux
-pwsh -File .\demo\run_demo.ps1                        # Windows
 ```
 
-Both scripts run the same scenes against sandboxed throwaway repos; your real git config is
-never touched. The running order, and what to say over each scene, is in
-[DEMO_RUNBOOK.md](DEMO_RUNBOOK.md).
+Five beats, each run by hand in a throwaway repository (`git init`, stage, `git commit`). The
+running order, and what to say over each beat, is in [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md).
 
 1. One global install protects two unrelated repos.
 2. Hardcoded secrets in Python/Docker/Terraform/`.env` plus PII fixtures are fixed interactively

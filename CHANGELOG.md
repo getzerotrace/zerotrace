@@ -4,6 +4,8 @@ All notable changes documented here, following [Keep a Changelog](https://keepac
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.4.0] - 2026-10-01
 ### Added
 - A scanning spinner. While the pre-commit hook, `zerotrace scan` and the pre-push hook work, one
   themed line says so - `zerotrace: ⠹ Lollygagging… scanning 11 staged files · 4s` - with a
@@ -308,7 +310,8 @@ First public release.
 - Secrets other than AWS/PEM could reach the model unredacted.
 - The interactive menu never appeared under the pre-commit framework.
 
-[Unreleased]: https://github.com/getzerotrace/zerotrace/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/getzerotrace/zerotrace/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/getzerotrace/zerotrace/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/getzerotrace/zerotrace/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/getzerotrace/zerotrace/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/getzerotrace/zerotrace/compare/v0.2.0...v0.3.0

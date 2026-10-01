@@ -320,6 +320,63 @@ def _checked_hooks_dir(hooks_dir: str) -> str:
     return resolved
 
 
+def _set_config(scope: str, key: str, value: str) -> None:
+    result = _git_config(scope, key, value)
+    if result.returncode != 0:
+        raise PermissionError(result.stderr.strip() or f"could not set {scope} {key}")
+
+
+def _template_managed(template_dir: str | None) -> bool:
+    return is_managed(os.path.join(template_dir, "hooks")) if template_dir else False
+
+
+def _chained_hooks_path(scope: str, state: dict, log: list[str]) -> str:
+    """The core.hooksPath that was set before ours, which the new shims keep running."""
+    current = gitutil.config_get(HOOKS_PATH_KEY, scope)
+    if not current:
+        return ""
+    if not is_managed(current):
+        state[f"{scope}_previous_hooks_path"] = current
+        log.append(f"existing {scope} core.hooksPath {current} will still run (chained)")
+        return os.path.abspath(os.path.expanduser(current))
+    prev = state.get(f"{scope}_previous_hooks_path", "")
+    return os.path.abspath(os.path.expanduser(prev)) if prev else ""
+
+
+def _chained_template_hooks(scope: str, state: dict, log: list[str]) -> str:
+    """The hooks directory of the init.templateDir that was set before ours."""
+    current = gitutil.config_get(TEMPLATE_DIR_KEY, scope)
+    if not current:
+        return ""
+    if not _template_managed(current):
+        state[f"{scope}_previous_template_dir"] = current
+        log.append(f"existing {scope} init.templateDir {current} will still seed new "
+                   "repos (chained)")
+        return os.path.join(os.path.abspath(os.path.expanduser(current)), "hooks")
+    prev = state.get(f"{scope}_previous_template_dir", "")
+    return os.path.join(os.path.abspath(os.path.expanduser(prev)), "hooks") if prev else ""
+
+
+def _restore_setting(scope: str, key: str, managed: bool, previous: str, log: list[str]) -> None:
+    """Put back the value an install displaced, or drop the setting if it displaced none."""
+    if not managed:
+        log.append(f"{scope} {key} is not managed by ZeroTrace; left unchanged")
+    elif previous:
+        _git_config(scope, key, previous)
+        log.append(f"restored {scope} {key} -> {previous}")
+    else:
+        _git_config(scope, "--unset", key)
+        log.append(f"unset {scope} {key}")
+
+
+def _remove_hook_files(hooks_dir: str) -> None:
+    for name in (*HOOK_NAMES, MARKER):
+        with contextlib.suppress(OSError):
+            os.remove(os.path.join(hooks_dir, name))
+    with contextlib.suppress(OSError):
+        os.rmdir(hooks_dir)
+
+
 def install(scope: str = "global", hooks_dir: str | None = None,
             template_dir: str | None = None,
             on_step: Callable[[str], None] | None = None) -> list[str]:
@@ -338,52 +395,27 @@ def install(scope: str = "global", hooks_dir: str | None = None,
     template_hooks_dir = _checked_hooks_dir(os.path.join(template_dir, "hooks"))
     log: list[str] = []
     state = _load_state()
-
-    current = gitutil.config_get(HOOKS_PATH_KEY, scope)
-    prev = ""
-    if current and not is_managed(current):
-        prev = os.path.abspath(os.path.expanduser(current))
-        state[f"{scope}_previous_hooks_path"] = current
-        log.append(f"existing {scope} core.hooksPath {current} will still run (chained)")
-    elif current and is_managed(current):
-        prev = state.get(f"{scope}_previous_hooks_path", "")
-        if prev:
-            prev = os.path.abspath(os.path.expanduser(prev))
+    prev = _chained_hooks_path(scope, state, log)
 
     _step(INSTALL_STEPS[1])
     write_hooks(hooks_dir, prev, scope)
     log.append(f"wrote {len(HOOK_NAMES)} hook shims to {hooks_dir}")
 
     _step(INSTALL_STEPS[2])
-    result = _git_config(scope, HOOKS_PATH_KEY, _sh_path(hooks_dir))
-    if result.returncode != 0:
-        raise PermissionError(result.stderr.strip() or f"could not set {scope} {HOOKS_PATH_KEY}")
+    _set_config(scope, HOOKS_PATH_KEY, _sh_path(hooks_dir))
     state[f"{scope}_hooks_dir"] = hooks_dir
     log.append(f"git config --{scope} {HOOKS_PATH_KEY} {_sh_path(hooks_dir)}")
 
     # init.templateDir: a repo-local fallback so `git init`/`clone` still seed .git/hooks if
     # core.hooksPath is ever locally cleared or overridden; core.hooksPath (above) is the
     # mechanism that actually protects every invocation, so this only matters at creation time.
-    current_template = gitutil.config_get(TEMPLATE_DIR_KEY, scope)
-    prev_template_hooks = ""
-    if current_template and not is_managed(os.path.join(current_template, "hooks")):
-        prev_template_hooks = os.path.join(
-            os.path.abspath(os.path.expanduser(current_template)), "hooks")
-        state[f"{scope}_previous_template_dir"] = current_template
-        log.append(f"existing {scope} init.templateDir {current_template} will still seed new "
-                   "repos (chained)")
-    elif current_template and is_managed(os.path.join(current_template, "hooks")):
-        prev = state.get(f"{scope}_previous_template_dir", "")
-        if prev:
-            prev_template_hooks = os.path.join(os.path.abspath(os.path.expanduser(prev)), "hooks")
+    prev_template_hooks = _chained_template_hooks(scope, state, log)
 
     _step(INSTALL_STEPS[3])
     write_template_hooks(template_hooks_dir, prev_template_hooks, scope)
 
     _step(INSTALL_STEPS[4])
-    result = _git_config(scope, TEMPLATE_DIR_KEY, _sh_path(template_dir))
-    if result.returncode != 0:
-        raise PermissionError(result.stderr.strip() or f"could not set {scope} {TEMPLATE_DIR_KEY}")
+    _set_config(scope, TEMPLATE_DIR_KEY, _sh_path(template_dir))
     state[f"{scope}_template_dir"] = template_dir
     log.append(f"git config --{scope} {TEMPLATE_DIR_KEY} {_sh_path(template_dir)}")
 
@@ -398,43 +430,17 @@ def uninstall(scope: str = "global") -> list[str]:
     current = gitutil.config_get(HOOKS_PATH_KEY, scope)
     prev = state.pop(f"{scope}_previous_hooks_path", "")
     hooks_dir = state.pop(f"{scope}_hooks_dir", current or "")
-    if current and is_managed(current):
-        if prev:
-            _git_config(scope, HOOKS_PATH_KEY, prev)
-            log.append(f"restored {scope} core.hooksPath -> {prev}")
-        else:
-            _git_config(scope, "--unset", HOOKS_PATH_KEY)
-            log.append(f"unset {scope} core.hooksPath")
-    else:
-        log.append(f"{scope} core.hooksPath is not managed by ZeroTrace; left unchanged")
+    _restore_setting(scope, HOOKS_PATH_KEY, is_managed(current), prev, log)
     if hooks_dir and is_managed(hooks_dir):
-        for name in (*HOOK_NAMES, MARKER):
-            with contextlib.suppress(OSError):
-                os.remove(os.path.join(hooks_dir, name))
-        with contextlib.suppress(OSError):
-            os.rmdir(hooks_dir)
+        _remove_hook_files(hooks_dir)
         log.append(f"removed {hooks_dir}")
 
     current_template = gitutil.config_get(TEMPLATE_DIR_KEY, scope)
     prev_template = state.pop(f"{scope}_previous_template_dir", "")
     template_dir = state.pop(f"{scope}_template_dir", current_template or "")
-    managed_template = current_template and is_managed(os.path.join(current_template, "hooks"))
-    if managed_template:
-        if prev_template:
-            _git_config(scope, TEMPLATE_DIR_KEY, prev_template)
-            log.append(f"restored {scope} init.templateDir -> {prev_template}")
-        else:
-            _git_config(scope, "--unset", TEMPLATE_DIR_KEY)
-            log.append(f"unset {scope} init.templateDir")
-    else:
-        log.append(f"{scope} init.templateDir is not managed by ZeroTrace; left unchanged")
-    if template_dir and is_managed(os.path.join(template_dir, "hooks")):
-        hooks_subdir = os.path.join(template_dir, "hooks")
-        for name in (*HOOK_NAMES, MARKER):
-            with contextlib.suppress(OSError):
-                os.remove(os.path.join(hooks_subdir, name))
-        with contextlib.suppress(OSError):
-            os.rmdir(hooks_subdir)
+    _restore_setting(scope, TEMPLATE_DIR_KEY, _template_managed(current_template), prev_template, log)
+    if _template_managed(template_dir):
+        _remove_hook_files(os.path.join(template_dir, "hooks"))
         with contextlib.suppress(OSError):
             os.rmdir(template_dir)
         log.append(f"removed {template_dir}")

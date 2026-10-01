@@ -192,7 +192,7 @@ def _preview(decision, proposal) -> Panel:
                  border_style="green", box=glyphs.box_for(console))
 
 
-def _apply_unstage(finding, cfg, resolved_paths: set[str]) -> bool:
+def _apply_unstage(finding, resolved_paths: set[str]) -> bool:
     for action in applier.unstage_and_ignore(finding.path):
         console.print(f"  [green]{glyphs.for_console(console)['ok']}[/] {escape(action)}")
     resolved_paths.add(finding.path)
@@ -273,7 +273,7 @@ def _interactive_resolve(decision, cfg, resolved_paths: set[str]) -> bool:
                          default=options[0].key, console=console)
 
     if choice == "u":
-        return _apply_unstage(finding, cfg, resolved_paths)
+        return _apply_unstage(finding, resolved_paths)
     if choice in ("v", "r"):
         return _apply_fix(finding, cfg, "reference" if choice == "v" else "placeholder")
     if choice == "e":

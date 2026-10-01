@@ -605,17 +605,34 @@ def _parser() -> argparse.ArgumentParser:
     return p
 
 
-def main(argv: list[str] | None = None) -> None:
-    # Legacy Windows consoles default to a non-UTF-8 codepage; the ✓/✗ glyphs we print would
-    # otherwise crash with UnicodeEncodeError instead of just displaying as '?'.
+def _replace_unencodable() -> None:
+    """Legacy Windows consoles default to a non-UTF-8 codepage; the ✓/✗ glyphs we print would
+    otherwise crash with UnicodeEncodeError instead of just displaying as '?'."""
     for stream in (sys.stdout, sys.stderr):
         reconfigure = getattr(stream, "reconfigure", None)
         if reconfigure is not None:
             with contextlib.suppress(ValueError):
                 reconfigure(errors="replace")
-    argv = sys.argv[1:] if argv is None else list(argv)
+
+
+def _with_default_command(argv: list[str]) -> list[str]:
+    """`zerotrace` and `zerotrace <files>` (how pre-commit frameworks call a hook) mean `run`."""
     if not argv or (argv[0] not in COMMANDS and argv[0] not in ("-h", "--help")):
-        argv = ["run", *argv]
+        return ["run", *argv]
+    return argv
+
+
+def _enter_repo(command: str) -> None:
+    """Repository commands run from its root; the hooks let a directory that is not one through."""
+    if not gitutil.in_repo():
+        print("zerotrace: not inside a git repository", file=sys.stderr)
+        raise SystemExit(0 if command in ("run", "pre-push", "post-commit") else 2)
+    os.chdir(gitutil.repo_root())
+
+
+def main(argv: list[str] | None = None) -> None:
+    _replace_unencodable()
+    argv = _with_default_command(sys.argv[1:] if argv is None else list(argv))
     args = _parser().parse_args(argv)
 
     if args.command == "version":
@@ -623,10 +640,7 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit(0)
     repo_commands = {"run", "review", "scan", "pre-push", "post-commit", "init", "exceptions"}
     if args.command in repo_commands:
-        if not gitutil.in_repo():
-            print("zerotrace: not inside a git repository", file=sys.stderr)
-            raise SystemExit(0 if args.command in ("run", "pre-push", "post-commit") else 2)
-        os.chdir(gitutil.repo_root())
+        _enter_repo(args.command)
 
     handlers = {
         "run": run, "review": review, "scan": scan, "pre-push": pre_push,

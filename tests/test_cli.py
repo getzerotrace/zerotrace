@@ -27,7 +27,8 @@ def test_run_blocks_a_staged_secret_and_hides_the_value(repo, capsys):
     git("add", "-A")
     assert run("run") == 1
     out = capsys.readouterr().out
-    assert "stripe-live-key" in out and value not in out
+    assert "stripe-live-key" in out
+    assert value not in out
 
 
 def test_run_allows_a_clean_diff(repo, capsys):
@@ -81,7 +82,8 @@ def test_pre_push_blocks_commits_that_bypassed_the_hook(repo, monkeypatch, capsy
     monkeypatch.setattr("sys.stdin", io.StringIO(f"refs/heads/main {head} refs/heads/main {base}\n"))
     assert run("pre-push", "origin") == 1
     out = capsys.readouterr().out
-    assert "github-token" in out and value not in out
+    assert "github-token" in out
+    assert value not in out
 
 
 def test_init_writes_config_and_hashed_baseline(repo, capsys):
@@ -91,7 +93,8 @@ def test_init_writes_config_and_hashed_baseline(repo, capsys):
     assert run("init") == 0
     assert (repo / ".zerotrace.yml").exists()
     baseline = json.loads((repo / ".secrets.baseline").read_text())
-    assert baseline["version"] and "results" in baseline
+    assert baseline["version"]
+    assert "results" in baseline
     assert run("init") == 0                       # idempotent: does not clobber the config
     assert "exists" in capsys.readouterr().out
 
@@ -139,7 +142,8 @@ def test_install_and_uninstall_through_the_cli(git_env, repo, capsys):
 def test_doctor_reports_an_unreachable_model_without_failing(repo, capsys):
     assert run("doctor") in (0, 1)
     out = capsys.readouterr().out
-    assert "model" in out and "rule pack" in out
+    assert "model" in out
+    assert "rule pack" in out
 
 
 def test_doctor_refuses_a_remote_endpoint_that_is_not_opted_in(repo, monkeypatch, capsys):
@@ -224,7 +228,8 @@ def test_the_exception_listing_shows_rule_and_file(repo, capsys, monkeypatch):
     exceptions.add("f" * 64, "vendor [sample] key", 7, rule_id="stripe-live-key", path="pay.py")
     assert run("exceptions") == 0
     out = capsys.readouterr().out
-    assert "stripe-live-key" in out and "pay.py" in out
+    assert "stripe-live-key" in out
+    assert "pay.py" in out
     assert "vendor [sample] key" in out, "a reason is printed as typed, not read as markup"
 
 
@@ -234,7 +239,8 @@ def test_a_closed_stdin_at_the_prompt_is_an_abort_not_an_internal_error(repo, ca
     monkeypatch.setattr("sys.stdin", io.StringIO(""))       # EOF as soon as it asks
     assert run("review", "--classic") == 1
     err = capsys.readouterr().err
-    assert "Nothing was committed" in err and "internal error" not in err
+    assert "Nothing was committed" in err
+    assert "internal error" not in err
 
 
 _BANNER = "secret & PII guardrail"      # the name panel printed with the logo
@@ -246,7 +252,8 @@ def test_a_blocked_commit_shows_the_findings_without_the_logo(repo, capsys):
     assert run("run") == 1
     out = capsys.readouterr().out
     assert "stripe-live-key" in out
-    assert _BANNER not in out and "ZEROTRACE" not in out, "no logo or name on an alert"
+    assert _BANNER not in out, "no logo or name on an alert"
+    assert "ZEROTRACE" not in out, "no logo or name on an alert"
 
 
 def test_scan_reports_have_no_banner_either(repo, capsys):

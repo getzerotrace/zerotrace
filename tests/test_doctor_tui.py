@@ -47,7 +47,8 @@ async def test_checks_arrive_and_an_unprotected_repo_fails(repo):
     async with app.run_test(size=(120, 40)) as pilot:
         await _settle(pilot, app)
         names = [check.name for check in app.checks]
-        assert "python" in names and doctor.REPO_PROTECTED in names
+        assert "python" in names
+        assert doctor.REPO_PROTECTED in names
         assert app.table.row_count == len(app.checks)
         assert "failed" in app.status_text
         await pilot.press("q")
@@ -89,7 +90,8 @@ async def test_warm_and_pin_are_offered_only_when_the_model_answers(repo):
     async with app.run_test(size=(120, 40)) as pilot:
         await _settle(pilot, app)
         available = app.actions_for(app.current())
-        assert "warm" not in available and "pin" not in available
+        assert "warm" not in available
+        assert "pin" not in available
         await pilot.press("w")
         await pilot.pause()
         assert not app.running, "W refuses rather than starting a run that warms nothing"
@@ -124,7 +126,8 @@ async def test_leaving_before_the_checks_finish_is_not_a_pass(repo, monkeypatch)
     try:
         async with app.run_test() as pilot:
             await pilot.pause(0.2)
-            assert app.running and len(app.checks) == 1, "results show as they arrive"
+            assert app.running, "results show as they arrive"
+            assert len(app.checks) == 1, "results show as they arrive"
             await pilot.press("q")
             await pilot.pause()
     finally:

@@ -39,4 +39,5 @@ def test_critical_can_never_be_unblocked(repo):
 def test_invalid_repo_config_falls_back_safely(repo):
     write(repo / ".zerotrace.yml", "model: [unclosed\n")
     cfg = load_config()
-    assert cfg.enabled and "critical" in cfg.block_severity
+    assert cfg.enabled
+    assert "critical" in cfg.block_severity

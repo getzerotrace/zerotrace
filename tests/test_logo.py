@@ -69,7 +69,8 @@ def test_ascii_tier_is_pure_ascii(monkeypatch):
     monkeypatch.setenv("ZEROTRACE_LOGO", "ascii")
     art = _plain(logo.render(_console(width=100)))
     art.encode("cp437")                      # raises if any glyph is unrepresentable
-    assert set("@%#*+=:-.") & set(art) and "ZEROTRACE" in art
+    assert set("@%#*+=:-.") & set(art)
+    assert "ZEROTRACE" in art
     assert not _BLOCKS & set(art)
 
 
@@ -145,7 +146,8 @@ def test_wordmark_sits_to_the_right_of_the_mark(monkeypatch):
                                   "mark.small.uni.txt", "mark.small.ascii.txt"])
 def test_generated_assets_ship_in_the_package(name):
     art = logo._read_text(name)
-    assert art and art.strip(), name
+    assert art, name
+    assert art.strip(), name
 
 
 def test_assets_have_no_trailing_whitespace_or_crlf():
@@ -212,7 +214,8 @@ def test_ascii_tier_draws_the_outline_not_a_blob(monkeypatch):
     lines = [line for line in art.splitlines() if line.strip()]
     densest = max(line.count("@") for line in lines)
     assert densest < 30, "the ASCII mark should be a line drawing, not a solid block"
-    assert "@" in art and "." in art
+    assert "@" in art
+    assert "." in art
 
 
 def test_mono_tier_is_inverted_so_the_head_reads_as_the_artwork(monkeypatch):

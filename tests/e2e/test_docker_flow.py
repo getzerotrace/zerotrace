@@ -97,7 +97,8 @@ def test_a_running_daemon_pulls_the_image_and_reports_the_model(machine, tmp_pat
     done = machine.install("--local")
     printed = flat(done.stdout)
     calls = (tmp_path / "fake-docker.log").read_text(encoding="utf-8")
-    assert "compose" in calls and "up" in calls, "a running daemon should have been used"
+    assert "compose" in calls, "a running daemon should have been used"
+    assert "up" in calls, "a running daemon should have been used"
     assert "is protecting every repo on this machine" in printed
     assert "MEDIUM findings will WARN" in printed or "did not answer" in printed
 

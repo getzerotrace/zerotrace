@@ -23,7 +23,8 @@ def test_local_exception_silences_a_finding(repo):
     fp = _fingerprint()
     assert not exceptions.is_active(fp)
     path = exceptions.add(fp, "reviewed false positive", ttl_days=30)
-    assert path.endswith("exceptions.json") and ".git" in path      # local by default
+    assert path.endswith("exceptions.json")  # local by default
+    assert ".git" in path
     assert exceptions.is_active(fp)
 
 
@@ -32,7 +33,8 @@ def test_shared_file_lives_in_the_repo_and_is_committable(repo):
     path = exceptions.add(fp, "vendored sample key", ttl_days=30, shared=True)
     assert path.endswith(exceptions.SHARED_FILE)
     payload = _read_json(path)
-    assert "note" in payload and fp in payload["exceptions"]
+    assert "note" in payload
+    assert fp in payload["exceptions"]
     assert exceptions.is_active(fp)
     assert "reviewed" in payload["note"].lower() or "review" in payload["note"].lower()
 
@@ -55,9 +57,11 @@ def test_promote_moves_local_entries_into_the_reviewable_file(repo):
     exceptions.add(expired, "stale", ttl_days=-1)
 
     moved, path = exceptions.promote()
-    assert moved == 1 and path.endswith(exceptions.SHARED_FILE)
+    assert moved == 1
+    assert path.endswith(exceptions.SHARED_FILE)
     shared = _read_json(path)["exceptions"]
-    assert live in shared and expired not in shared
+    assert live in shared
+    assert expired not in shared
     assert exceptions.is_active(live)
     assert live not in exceptions._read(exceptions.local_path())   # no longer duplicated
 
@@ -90,7 +94,9 @@ def test_old_entries_without_rule_or_file_still_list(repo):
     write(exceptions.shared_path(), json.dumps({"exceptions": {_fingerprint("o"): {
         "reason": "from v0.1", "expires_at": "2999-01-01T00:00:00+00:00"}}}))
     (row,) = exceptions.listing()
-    assert row.active and row.rule_id == "" and row.path == ""
+    assert row.active
+    assert row.rule_id == ""
+    assert row.path == ""
 
 
 def test_promote_can_move_a_single_exception(repo):
@@ -152,4 +158,5 @@ def test_a_shared_exception_actually_allows_the_commit(repo, fake):
 
     exceptions.add(of_finding(decision.finding), "vendor sample, rotated", 30, shared=True)
     (after,) = pipeline.scan(collect_staged(), cfg, use_model=False)
-    assert after.action == "allow" and "exception" in after.reason
+    assert after.action == "allow"
+    assert "exception" in after.reason

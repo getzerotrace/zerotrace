@@ -74,7 +74,8 @@ def test_tty_without_unicode_uses_ascii_blocks():
     bar = Bar(4, file=out, console=_console(out, color=None))
     bar.step("writing hooks")
     frame = _plain(_last_frame(out))
-    assert "#" in frame and "█" not in frame
+    assert "#" in frame
+    assert "█" not in frame
     frame.encode("cp437")                       # nothing the console cannot render
 
 
@@ -116,7 +117,8 @@ def test_finish_leaves_a_full_bar_and_a_newline():
     bar.step("one")
     bar.finish()
     final = _plain(out.getvalue().split("\r")[-1])
-    assert "100%" in final and final.endswith("\n")
+    assert "100%" in final
+    assert final.endswith("\n")
     assert "░" not in final, "a finished bar should be full"
 
 
@@ -137,7 +139,8 @@ def test_narrow_terminal_drops_the_label_but_keeps_the_bar(monkeypatch):
     bar.step("Registering core.hooksPath")
     frame = _plain(_last_frame(out))
     assert "Registering" not in frame
-    assert "%" in frame and len(frame.rstrip()) <= 40
+    assert "%" in frame
+    assert len(frame.rstrip()) <= 40
 
 
 @pytest.mark.parametrize("columns", [200, 120, 100, 80, 60, 50, 40, 30, 20])

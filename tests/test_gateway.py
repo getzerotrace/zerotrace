@@ -96,4 +96,5 @@ def test_two_pii_values_on_one_line_are_both_replaced(internal_domain):
     email = "priya.sharma" + "@" + internal_domain         # a configured domain -> high
     phone = "+1-202-" + "555-01" + rand(2, "0123456789")   # built at run time, never a literal
     result = sanitize(f'contact {email} or {phone} urgently')
-    assert email not in result.sanitized_text and phone not in result.sanitized_text
+    assert email not in result.sanitized_text
+    assert phone not in result.sanitized_text

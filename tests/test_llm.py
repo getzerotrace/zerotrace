@@ -89,7 +89,8 @@ def test_ollama_adapter_and_schema(server, tmp_path, monkeypatch):
     assert verdict.classification == "REAL_SECRET"
     req = s.requests[0]
     assert req["format"]["properties"]["classification"]["enum"]  # constrained decoding
-    assert req["keep_alive"] == "30m" and req["options"]["temperature"] == 0
+    assert req["keep_alive"] == "30m"
+    assert req["options"]["temperature"] == 0
     assert value not in json.dumps(req)
 
 
@@ -161,4 +162,5 @@ def test_no_value_ever_reaches_a_prompt(make):
         finding = replace(_medium(value, line=f'k = "{value}"'), context_snippet=window)
         msgs = llm.build_messages(finding, extra_values=(neighbour,))
         blob = json.dumps(msgs)
-        assert value not in blob and neighbour not in blob
+        assert value not in blob
+        assert neighbour not in blob

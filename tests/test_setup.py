@@ -82,7 +82,8 @@ def test_a_running_daemon_brings_the_model_up(sandbox, fake_docker, fake_ollama)
     state, result = _rows(outcome)["model"]
     assert state == "ok"
     assert load_config().model_name in result
-    assert outcome.model_status is not None and outcome.model_status.usable
+    assert outcome.model_status is not None
+    assert outcome.model_status.usable
 
 
 def test_the_summary_names_the_uninstall_command(sandbox, no_docker):
@@ -104,7 +105,8 @@ def test_the_step_numbers_continue_the_installers_own(sandbox, no_docker):
 def test_running_it_twice_is_not_a_second_install(sandbox, no_docker):
     first = _run(pull_model=False)
     second = _run(pull_model=False)
-    assert first.guardrail_ok and second.guardrail_ok
+    assert first.guardrail_ok
+    assert second.guardrail_ok
     hooks = installer.default_hooks_dir("global")
     assert _rows(second)["git hooks"][1].startswith(f"{len(installer.HOOK_NAMES)} shims in {hooks}")
 

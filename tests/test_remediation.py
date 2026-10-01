@@ -96,8 +96,10 @@ def test_headless_report_never_prints_a_value(capsys):
     ]
     terminal.headless_report(decisions, Config())
     out = capsys.readouterr().out
-    assert value not in out and other not in out
-    assert "stripe-live-key" in out and "github-token" in out
+    assert value not in out
+    assert other not in out
+    assert "stripe-live-key" in out
+    assert "github-token" in out
     assert "len=" in out                      # masked as a typed, length-hinted token
 
 
@@ -110,7 +112,8 @@ def test_two_findings_on_one_line_are_both_masked(capsys):
     ]
     terminal.headless_report(decisions, Config())
     out = capsys.readouterr().out
-    assert a not in out and b not in out
+    assert a not in out
+    assert b not in out
 
 
 def test_non_interactive_present_returns_blocked(capsys):

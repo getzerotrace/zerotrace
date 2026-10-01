@@ -116,7 +116,8 @@ def test_doctor_table_renders(encoding):
     report.add(FAIL, "hooks", "not installed…")
     console.print(report.table(console))
     out = _rendered(console)
-    assert "python" in out and "?" not in out.replace("?)", "")
+    assert "python" in out
+    assert "?" not in out.replace("?)", "")
 
 
 # --- widths ---------------------------------------------------------------------------
@@ -161,7 +162,8 @@ def test_glyphs_downgrade_only_where_needed():
 def test_ui_preview_command_runs_for_every_tier(tier, capsys):
     assert preview.run(tier) == 0
     out = capsys.readouterr().out
-    assert "capabilities" in out and "ZEROTRACE" in out.upper()
+    assert "capabilities" in out
+    assert "ZEROTRACE" in out.upper()
 
 
 def test_ui_preview_masks_the_sample_secret(capsys):

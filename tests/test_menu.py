@@ -116,7 +116,8 @@ def test_the_preview_uses_glyphs_the_console_can_print(encoding, pointer):
     console.print(menu.preview("How?", OPTIONS, console))
     stream.flush()
     rendered = stream.buffer.getvalue().decode(encoding)
-    assert pointer in rendered and "safe placeholder" in rendered
+    assert pointer in rendered
+    assert "safe placeholder" in rendered
 
 
 # --- the real flow, in a pseudo-terminal ------------------------------------------------------
@@ -180,7 +181,8 @@ def test_the_hook_menu_answers_arrow_keys_in_a_real_terminal(repo, fake):
     code, output = _run_review_in_a_pty(DOWN.encode() + b"\r")      # R: safe placeholder
     staged = git("show", ":pay.py").stdout
     assert code == 0
-    assert value not in staged and staged.startswith('KEY = "<')
+    assert value not in staged
+    assert staged.startswith('KEY = "<')
     assert value.encode() not in output, "no raw value is ever drawn"
     assert b"\x1b[?1000h" in output, "mouse reporting was switched on for the menu"
 
@@ -193,4 +195,5 @@ def test_the_hook_menu_answers_a_mouse_click_in_a_real_terminal(repo, fake):
     code, _ = _run_review_in_a_pty(click)
     staged = git("show", ":pay.py").stdout
     assert code == 0
-    assert value not in staged and staged.startswith('KEY = "<')
+    assert value not in staged
+    assert staged.startswith('KEY = "<')

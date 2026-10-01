@@ -66,7 +66,8 @@ def test_the_logo_gradient_only_ever_deepens_and_stays_the_accent_hue():
         assert _contrast(stop, _WHITE) >= 2.5, stop
         assert _contrast(stop, _BLACK) >= 2.5, stop
         red, green, blue = stop
-        assert green > red and green > blue, f"{stop} is not a green"
+        assert green > red, f"{stop} is not a green"
+        assert green > blue, f"{stop} is not a green"
     assert len(theme.LOGO_RGB) == len(theme.LOGO_256)
 
 

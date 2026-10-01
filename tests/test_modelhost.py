@@ -138,7 +138,8 @@ def test_up_starts_the_container_and_pulls_the_model(cfg, fake_docker, fake_olla
     assert fake_ollama.state["pulls"] == [cfg.model_name]
     assert any("compose" in call and "up" in call for call in fake_docker.calls)
     assert fake_docker.state["container"] == "up"
-    assert result.status is not None and result.status.usable
+    assert result.status is not None
+    assert result.status.usable
 
 
 def test_a_model_that_is_already_served_needs_no_pull(cfg, fake_docker, fake_ollama):
@@ -162,7 +163,8 @@ def test_pull_reports_progress_so_a_slow_download_does_not_look_stuck(cfg, fake_
     cfg = load_config()
     seen: list[tuple[int, int]] = []
     assert modelhost.pull(cfg, on_progress=lambda done, total: seen.append((done, total)))
-    assert seen and seen[-1] == (1000, 1000)
+    assert seen
+    assert seen[-1] == (1000, 1000)
 
 
 def test_down_keeps_the_image_and_the_model_unless_asked(cfg, fake_docker):

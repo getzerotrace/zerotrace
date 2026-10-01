@@ -145,7 +145,8 @@ def test_notes_are_exactly_that_version_s_section(project):
     version = release.current_version(project)
     text = release.notes(f"v{version}", root=project)
     assert text.startswith(f"## [{version}] - ")
-    assert "## [Unreleased]" not in text and "/compare/" not in text
+    assert "## [Unreleased]" not in text
+    assert "/compare/" not in text
     assert text.count("\n## [") == 0, "stops before the previous version"
 
 

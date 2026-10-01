@@ -57,7 +57,8 @@ def test_provider_tokens_block_anywhere_in_code(make, rule):
 def test_connection_string_with_password():
     line = f'DB = "{_uri("postgres", "svc", rand(14))}"'
     (f,) = _scan("db.py", line)
-    assert f.rule_id == "connection-string-with-password" and f.severity == "high"
+    assert f.rule_id == "connection-string-with-password"
+    assert f.severity == "high"
 
 
 def test_connection_string_placeholder_password_is_ignored():
@@ -132,7 +133,8 @@ def test_test_paths_downgrade_heuristic_findings():
 def test_provider_token_in_test_file_still_blocks():
     token = Fake.stripe_live()
     findings = _scan("tests/test_pay.py", f'KEY = "{token}"')
-    assert findings[0].rule_id == "stripe-live-key" and findings[0].severity == "critical"
+    assert findings[0].rule_id == "stripe-live-key"
+    assert findings[0].severity == "critical"
 
 
 def test_base64_obscured_stripe_key_still_blocks_critical():
@@ -143,7 +145,8 @@ def test_base64_obscured_stripe_key_still_blocks_critical():
     token = Fake.stripe_live()
     blob = base64.b64encode(token.encode()).decode()
     (f,) = _scan("app.py", f'encoded_key = "{blob}"')
-    assert f.rule_id == "stripe-live-key-base64" and f.severity == "critical"
+    assert f.rule_id == "stripe-live-key-base64"
+    assert f.severity == "critical"
 
 
 def test_homoglyph_identifier_does_not_bypass_password_detection():
@@ -151,7 +154,8 @@ def test_homoglyph_identifier_does_not_bypass_password_detection():
     # hardcoded password slip past the keyword vocabulary (found during B5 adversarial testing).
     value = rand(11) + "Aa1!"
     (f,) = _scan("app.py", f'p\u0430ssword = "{value}"')
-    assert f.rule_id == "hardcoded-password" and f.severity == "high"
+    assert f.rule_id == "hardcoded-password"
+    assert f.severity == "high"
 
 
 @pytest.mark.parametrize("comment", [
@@ -280,7 +284,8 @@ def test_stored_hashes_are_not_treated_as_secrets():
     assert _scan("lock.json", f'  "integrity": "{digest}"') == []
     # ...but the same shape bound to a live credential name still blocks.
     findings = _scan("app.py", f'api_key = "{digest}"')
-    assert findings and findings[0].rule_id == "hardcoded-api-key"
+    assert findings
+    assert findings[0].rule_id == "hardcoded-api-key"
 
 
 def test_word_like_identifiers_are_not_credentials():
@@ -328,7 +333,8 @@ def test_generic_parts_on_a_credential_name_are_caught():
     left, right = rand(16), rand(16)
     (finding,) = _scan_lines("auth.py", [f'left = "{left}"', f'right = "{right}"',
                                          "client_secret = left + right"])
-    assert finding.rule_id == "composed-secret" and finding.severity == "high"
+    assert finding.rule_id == "composed-secret"
+    assert finding.severity == "high"
 
 
 @pytest.mark.parametrize("lines", [
@@ -350,7 +356,8 @@ def test_composed_finding_asks_for_a_manual_fix():
     (finding,) = _scan_lines("pay.py", [f'a = "{key[:17]}"', f'b = "{key[17:]}"',
                                         "stripe_key = a + b"])
     proposal = proposer.propose(Decision("block", "critical", "", finding), "reference", Config())
-    assert proposal.mode == "manual" and proposal.new_line is None
+    assert proposal.mode == "manual"
+    assert proposal.new_line is None
     assert "rotate" in proposal.note.lower()
 
 

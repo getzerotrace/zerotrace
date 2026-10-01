@@ -41,11 +41,14 @@ async def test_both_stores_are_listed_with_what_each_entry_covers(repo):
     async with app.run_test(size=(120, 40)) as pilot:
         await pilot.pause()
         assert app.table.row_count == 3
-        assert "2 active" in app.status_text and "1 expired" in app.status_text
+        assert "2 active" in app.status_text
+        assert "1 expired" in app.status_text
         _select(app, LOCAL_FP)
         await pilot.pause()
         shown = _plain(app)
-    assert "stripe-live-key" in shown and "pay.py" in shown and "vendor sample key" in shown
+    assert "stripe-live-key" in shown
+    assert "pay.py" in shown
+    assert "vendor sample key" in shown
     assert "on this machine only" in shown
 
 
@@ -57,8 +60,8 @@ async def test_promote_moves_a_local_exception_into_the_reviewed_file(repo):
         await pilot.press("P")
         await pilot.pause()
         current = app.current()
-        assert current.fingerprint == LOCAL_FP and current.scope == store.SHARED, \
-            "the cursor follows the entry into its new scope"
+        assert current.fingerprint == LOCAL_FP, "the cursor follows the entry into its new scope"
+        assert current.scope == store.SHARED, "the cursor follows the entry into its new scope"
     assert _scopes()[LOCAL_FP] == store.SHARED
     assert (repo / store.SHARED_FILE).exists()
 
@@ -71,7 +74,8 @@ async def test_revoking_asks_first_and_enter_alone_cancels(repo):
         _select(app, SHARED_FP)
         await pilot.press("d")
         await pilot.pause()
-        assert isinstance(app.screen, ConfirmScreen) and app.focused.id == "no"
+        assert isinstance(app.screen, ConfirmScreen)
+        assert app.focused.id == "no"
         await pilot.press("enter")
         await pilot.pause()
         assert SHARED_FP in _scopes()
@@ -102,7 +106,8 @@ async def test_only_active_hides_the_expired(repo):
     async with app.run_test(size=(120, 40)) as pilot:
         await pilot.press("o")
         await pilot.pause()
-        assert app.table.row_count == 2 and all(entry.active for entry in app.listed)
+        assert app.table.row_count == 2
+        assert all(entry.active for entry in app.listed)
         await pilot.press("O")
         await pilot.pause()
         assert app.table.row_count == 3

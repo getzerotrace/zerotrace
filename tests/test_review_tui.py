@@ -65,7 +65,8 @@ async def test_either_case_applies_the_placeholder(repo, fake, key):
         await pilot.press(key)
         await pilot.pause()
     staged = git("show", ":pay.py").stdout
-    assert value not in staged and staged.startswith("KEY = \"<")
+    assert value not in staged
+    assert staged.startswith("KEY = \"<")
 
 
 async def test_unstage_removes_the_file_from_the_commit(repo):
@@ -325,7 +326,8 @@ async def test_bracketed_code_is_shown_as_written_not_read_as_markup(repo, fake)
     async with app.run_test(size=(140, 40)) as pilot:
         await pilot.pause()
         shown = _plain(app)
-    assert "cfg[api_key]" in shown and "# [/] [bold]" in shown
+    assert "cfg[api_key]" in shown
+    assert "# [/] [bold]" in shown
     assert "app/[slug]/pay.py" in shown
     assert value not in shown
 
@@ -343,7 +345,8 @@ async def test_enter_opens_the_actions_and_the_arrow_keys_choose_one(repo, fake)
         await pilot.press("enter")
         await pilot.pause()
     staged = git("show", ":pay.py").stdout
-    assert value not in staged and staged.startswith('KEY = "<')
+    assert value not in staged
+    assert staged.startswith('KEY = "<')
 
 
 async def test_right_arrow_opens_the_actions_and_escape_goes_back(repo, fake):
@@ -356,7 +359,8 @@ async def test_right_arrow_opens_the_actions_and_escape_goes_back(repo, fake):
         assert app.focused.id == "do-fix_reference"
         await pilot.press("escape")
         await pilot.pause()
-        assert app.focused is app.table and app.is_running
+        assert app.focused is app.table
+        assert app.is_running
 
 
 async def test_clicking_an_action_applies_it(repo, fake):
@@ -366,7 +370,8 @@ async def test_clicking_an_action_applies_it(repo, fake):
         await pilot.click("#do-fix_reference")
         await pilot.pause()
     staged = git("show", ":pay.py").stdout
-    assert value not in staged and "os.environ[" in staged
+    assert value not in staged
+    assert "os.environ[" in staged
 
 
 async def test_clicking_a_row_selects_that_finding(repo, fake):

@@ -66,7 +66,8 @@ def test_path_like_values_are_still_skipped_and_secrets_still_caught():
     assert _scan("app.py", 'key_file = "/etc/ssl/private/server.key"') == []
     assert _scan("app.py", 'cert = "certs/server.pem"') == []
     findings = _scan("app.py", f'api_key = "{rand(20)}9aZ"')
-    assert findings and findings[0].severity == "high"
+    assert findings
+    assert findings[0].severity == "high"
 
 
 def test_private_key_file_detection_still_anchors_correctly():
@@ -92,8 +93,10 @@ def test_eval_values_use_the_csprng():
     assert sorted(evals._shuffled(list("abcdef"))) == list("abcdef"), "a permutation, no loss"
     password = evals._gen("pw:16")
     assert len(password) == 16
-    assert any(c.islower() for c in password) and any(c.isupper() for c in password)
-    assert any(c.isdigit() for c in password) and any(c in "!@#%^*-_" for c in password)
+    assert any(c.islower() for c in password)
+    assert any(c.isupper() for c in password)
+    assert any(c.isdigit() for c in password)
+    assert any(c in "!@#%^*-_" for c in password)
     assert Fake.github().startswith("ghp_")
 
 

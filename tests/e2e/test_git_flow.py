@@ -31,7 +31,8 @@ def test_paths_with_spaces_and_binary(repo):
         f.write(b"\x00\x01\x02")
     git("add", "-A")
     cs = collect_staged()
-    assert "my dir/cfg file.py" in cs.paths and "blob.bin" in cs.paths
+    assert "my dir/cfg file.py" in cs.paths
+    assert "blob.bin" in cs.paths
 
 
 def test_pipeline_blocks_hardcoded_secret(repo, fake):
@@ -71,7 +72,9 @@ def test_unstage_env_creates_example_and_gitignore(repo):
     actions = applier.unstage_and_ignore(".env")
     assert len(actions) == 3
     staged = git("diff", "--cached", "--name-only").stdout.split()
-    assert ".env" not in staged and ".gitignore" in staged and ".env.example" in staged
+    assert ".env" not in staged
+    assert ".gitignore" in staged
+    assert ".env.example" in staged
     assert git("show", ":.env.example").stdout.endswith("API_KEY=\nDB_PASSWORD=\n")
     assert os.path.exists(".env")  # the developer's file is untouched
 
@@ -82,7 +85,8 @@ def test_scan_commit_catches_no_verify(repo, fake):
     git("commit", "-qm", "sneaky", "--no-verify")
     sha = git("rev-parse", "HEAD").stdout.strip()
     decisions = pipeline.scan(collect_commit(sha), load_config(), use_model=False)
-    assert decisions and decisions[0].action == "block"
+    assert decisions
+    assert decisions[0].action == "block"
 
 
 def test_cli_run_headless_blocks_and_exits_1(repo, fake):

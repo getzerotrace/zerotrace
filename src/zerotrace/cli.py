@@ -7,17 +7,19 @@ import re
 import sys
 import time
 
-from . import __version__, gitutil, pipeline
+from . import __version__, bypass, gitutil
 from .audit import log as audit_log
 from .audit.fingerprint import of_finding
 from .collectors import staged_diff
 from .config import load_config
 
-COMMANDS = ("run", "review", "scan", "pre-push", "init", "install", "uninstall", "setup",
-            "model", "doctor", "ui", "exceptions",
+COMMANDS = ("run", "review", "scan", "pre-push", "post-commit", "init", "install", "uninstall",
+            "setup", "model", "doctor", "ui", "exceptions",
             "eval", "gateway", "version")
 _MAX_PUSH_COMMITS = 300
 _SHA_RE = re.compile(r"\A[0-9a-f]{40,64}\Z")
+# What an internal error means for the commands that do not block (post-commit cannot).
+_INTERNAL_ERROR = {"post-commit": "could not check this commit"}
 
 
 def audit_exceptions_file() -> str:
@@ -57,23 +59,42 @@ def _ok_line(changeset, started: float) -> None:
           f"no blocking findings ({ms:.0f} ms)")
 
 
+def _count(number: int, noun: str) -> str:
+    return f"{number} {noun}" if number == 1 else f"{number} {noun}s"
+
+
+def _scan_staged(cfg):
+    """The staged diff and what ZeroTrace decides about it, while the spinner runs.
+
+    `pipeline` is imported in here, under the spinner: it pulls in detect-secrets, the slowest
+    import there is, and a hook that prints nothing while that loads looks like a hung commit.
+    """
+    from .ui.spinner import Spinner
+    with Spinner("reading the staged diff") as spin:
+        from . import pipeline
+        changeset = staged_diff.collect_staged()
+        spin.detail(f"scanning {_count(len(changeset.paths), 'staged file')}")
+        return changeset, pipeline.scan(changeset, cfg)
+
+
 def run(args) -> int:
-    from .ui.terminal import is_interactive, present
     cfg = load_config()
     if not cfg.enabled:
+        bypass.mark_verified()      # nothing to scan, so post-commit has nothing to look at either
         return 0
     started = time.monotonic()
-    interactive = is_interactive() or getattr(args, "force_interactive", False)
     for attempt in range(5):  # re-scan after interactive fixes until the index is clean
-        changeset = staged_diff.collect_staged()
-        decisions = pipeline.scan(changeset, cfg)
+        changeset, decisions = _scan_staged(cfg)
         for decision in decisions:
             _record_decision(decision)
         blocking = _blocking(decisions)
         if not blocking:
+            bypass.mark_verified()
             if attempt or getattr(args, "hook", False) or getattr(args, "force_interactive", False):
                 _ok_line(changeset, started)
             return 0
+        from .ui.terminal import is_interactive, present
+        interactive = is_interactive() or getattr(args, "force_interactive", False)
         if not interactive:
             present(blocking, cfg, interactive=False)
             ms = (time.monotonic() - started) * 1000
@@ -117,7 +138,7 @@ def review(args) -> int:
 
     cfg = load_config()
     for attempt in range(5):        # re-scan after fixes until the index is clean
-        decisions = pipeline.scan(staged_diff.collect_staged(), cfg)
+        _, decisions = _scan_staged(cfg)
         for decision in decisions:
             _record_decision(decision)
         blocking = _blocking(decisions)
@@ -154,6 +175,7 @@ def _commits_in_range(rev_range: str) -> list[str]:
 
 def _scan_targets(args, cfg) -> list[tuple[str, list]]:
     """(commit sha, decisions) pairs for whichever target the user asked for."""
+    from . import pipeline
     use_model = not args.no_model
     if args.range:
         return [(sha, pipeline.scan(staged_diff.collect_commit(sha), cfg, use_model=use_model))
@@ -179,9 +201,19 @@ def _render_scan(results: list[tuple[str, list]], cfg) -> None:
         print("zerotrace: no findings.")
 
 
+def _scan_note(args) -> str:
+    if args.range:
+        return "scanning the commits in the range"
+    if args.all:
+        return "scanning every tracked line"
+    return "scanning the staged diff"
+
+
 def scan(args) -> int:
+    from .ui.spinner import Spinner
     cfg = load_config()
-    results = _scan_targets(args, cfg)
+    with Spinner(_scan_note(args)):
+        results = _scan_targets(args, cfg)
     fail_on = ("block", "warn") if args.fail_on == "warn" else ("block",)
     failed = any(d.action in fail_on for _, decisions in results for d in decisions)
     if args.format == "json":
@@ -233,22 +265,53 @@ def _report_blocked_push(blocked: list[tuple[str, list]], cfg) -> None:
 def pre_push(args) -> int:
     """Backstop for `git commit --no-verify`: scan every commit about to leave the machine.
     Deterministic only (no model) and blocks only on BLOCK-level findings."""
+    from .ui.spinner import Spinner
     cfg = load_config()
     if not cfg.enabled:
         return 0
     remote = gitutil.checked_rev(args.remote or "origin")
     blocked: list[tuple[str, list]] = []
-    for sha in _commits_being_pushed(sys.stdin.read(), remote):
-        decisions = pipeline.scan(staged_diff.collect_commit(sha), cfg, use_model=False)
-        hits = [d for d in decisions if d.action == "block"]
-        for decision in hits:
-            _record_decision(decision, {"stage": "pre-push", "commit": sha})
-        if hits:
-            blocked.append((sha, hits))
+    with Spinner("reading the commits being pushed") as spin:
+        from . import pipeline
+        commits = _commits_being_pushed(sys.stdin.read(), remote)
+        for number, sha in enumerate(commits, start=1):
+            spin.detail(f"scanning commit {number} of {len(commits)}")
+            decisions = pipeline.scan(staged_diff.collect_commit(sha), cfg, use_model=False)
+            hits = [d for d in decisions if d.action == "block"]
+            for decision in hits:
+                _record_decision(decision, {"stage": "pre-push", "commit": sha})
+            if hits:
+                blocked.append((sha, hits))
     if not blocked:
         return 0
     _report_blocked_push(blocked, cfg)
     return 1
+
+
+def post_commit(args) -> int:
+    """`git commit --no-verify` skips the pre-commit hook, but git still runs this one.
+
+    A commit whose tree the pre-commit hook never scanned is scanned here (deterministic only,
+    like pre-push) and, if it holds a blocking finding, the developer hears about it now instead
+    of at the push. Git ignores this hook's exit status - it can warn, it cannot refuse - so the
+    status only says whether anything was found."""
+    cfg = load_config()
+    if not cfg.enabled:
+        return 0
+    sha = bypass.commit_to_check()
+    if sha is None:
+        return 0
+    from .ui.spinner import Spinner
+    with Spinner("checking a commit that skipped the pre-commit hook"):
+        from . import pipeline
+        decisions = pipeline.scan(staged_diff.collect_commit(sha), cfg, use_model=False)
+    hits = [d for d in decisions if d.action == "block"]
+    for decision in hits:
+        _record_decision(decision, {"stage": "post-commit", "commit": sha})
+    if hits:
+        from .ui.terminal import bypass_warning
+        bypass_warning(hits, bypass.undo_command())
+    return 1 if hits else 0
 
 
 _CONFIG_TEMPLATE = """# ZeroTrace policy for this repo (checked in, reviewed like code).
@@ -470,6 +533,8 @@ def _parser() -> argparse.ArgumentParser:
     pp.add_argument("remote", nargs="?")
     pp.add_argument("url", nargs="?")
 
+    sub.add_parser("post-commit", help=argparse.SUPPRESS)
+
     i = sub.add_parser("init", help="write .zerotrace.yml and a hashed .secrets.baseline")
     i.add_argument("--force", action="store_true")
 
@@ -556,15 +621,16 @@ def main(argv: list[str] | None = None) -> None:
     if args.command == "version":
         print(f"zerotrace {__version__}")
         raise SystemExit(0)
-    repo_commands = {"run", "review", "scan", "pre-push", "init", "exceptions"}
+    repo_commands = {"run", "review", "scan", "pre-push", "post-commit", "init", "exceptions"}
     if args.command in repo_commands:
         if not gitutil.in_repo():
             print("zerotrace: not inside a git repository", file=sys.stderr)
-            raise SystemExit(0 if args.command in ("run", "pre-push") else 2)
+            raise SystemExit(0 if args.command in ("run", "pre-push", "post-commit") else 2)
         os.chdir(gitutil.repo_root())
 
     handlers = {
-        "run": run, "review": review, "scan": scan, "pre-push": pre_push, "init": init,
+        "run": run, "review": review, "scan": scan, "pre-push": pre_push,
+        "post-commit": post_commit, "init": init,
         "install": install_cmd, "uninstall": uninstall_cmd, "setup": setup_cmd,
         "model": model_cmd, "doctor": doctor_cmd, "ui": ui_cmd,
         "exceptions": exceptions_cmd,
@@ -578,6 +644,7 @@ def main(argv: list[str] | None = None) -> None:
     except Exception as exc:  # fail closed: an internal error blocks, never allows
         if os.environ.get("ZEROTRACE_DEBUG"):
             raise
-        print(f"zerotrace: internal error, blocking to stay safe: {exc!r}", file=sys.stderr)
+        outcome = _INTERNAL_ERROR.get(args.command, "blocking to stay safe")
+        print(f"zerotrace: internal error, {outcome}: {exc!r}", file=sys.stderr)
         code = 1
     raise SystemExit(code)

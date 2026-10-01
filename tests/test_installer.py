@@ -189,3 +189,65 @@ def test_hook_fires_with_explicit_git_dir_override(git_env, tmp_path, fake):
     result = subprocess.run(["git", "commit", "-qm", "c"], cwd=str(repo), env=env,
                             capture_output=True, text=True, stdin=subprocess.DEVNULL)
     assert result.returncode != 0
+
+
+def test_a_commit_that_skips_the_hook_is_warned_about(git_env, tmp_path, fake):
+    """`--no-verify` skips pre-commit, not post-commit: the commit goes through, loudly."""
+    installer.install("global")
+    repo = _new_repo(tmp_path, "bypass")
+    write(repo / "base.py", "x = 1\n")
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    assert _commit(repo).returncode == 0
+    write(repo / "deploy.py", f'TOKEN = "{fake.github()}"\n')
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    result = _commit(repo, "--no-verify")
+    shown = result.stdout + result.stderr
+    assert result.returncode == 0
+    assert "skipped the pre-commit scan" in shown
+    assert "github-token" in shown
+    assert "git reset --soft HEAD~1" in shown
+
+
+def test_an_ordinary_commit_is_not_second_guessed(git_env, tmp_path):
+    installer.install("global")
+    repo = _new_repo(tmp_path, "ordinary")
+    write(repo / "ok.py", "x = 1\n")
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    result = _commit(repo)
+    assert result.returncode == 0
+    assert "skipped" not in result.stdout + result.stderr
+
+
+def test_a_bypassed_commit_that_is_clean_stays_quiet(git_env, tmp_path):
+    installer.install("global")
+    repo = _new_repo(tmp_path, "quiet")
+    write(repo / "ok.py", "x = 1\n")
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    result = _commit(repo, "--no-verify")
+    assert result.returncode == 0
+    assert "zerotrace" not in result.stdout + result.stderr
+
+
+def test_a_repo_seeded_by_the_template_scans_each_commit_once(git_env, tmp_path):
+    """`git init` copies the template shims into .git/hooks, and the global shim chains the
+    repo's own hooks: without a guard ZeroTrace would run twice for every commit."""
+    installer.install("global")
+    repo = _new_repo(tmp_path, "seeded")
+    assert (repo / ".git" / "hooks" / "pre-commit").exists()
+    write(repo / "ok.py", "x = 1\n")
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    result = _commit(repo)
+    assert (result.stdout + result.stderr).count("no blocking findings") == 1
+
+
+def test_a_hand_written_repo_hook_still_runs_beside_a_seeded_one(git_env, tmp_path):
+    installer.install("global")
+    repo = _new_repo(tmp_path, "custom")
+    marker = tmp_path / "custom-hook-ran"
+    hook = repo / ".git" / "hooks" / "pre-commit"
+    write(hook, f"#!/bin/sh\necho ran >> '{marker}'\n")      # replaces the seeded copy
+    os.chmod(hook, 0o755)
+    write(repo / "ok.py", "x = 1\n")
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    assert _commit(repo).returncode == 0
+    assert marker.read_text().split() == ["ran"]

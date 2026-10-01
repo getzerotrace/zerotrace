@@ -15,7 +15,7 @@ from rich.table import Table
 from ..config import Config
 from ..detectors import Finding
 from ..policy.engine import Decision
-from . import capability, logo, terminal, theme
+from . import capability, logo, spinner, terminal, theme
 from .progress import Bar
 
 _TIERS = ("auto", "png", "card", "unicode", "ascii", "text")
@@ -109,7 +109,17 @@ def run(tier: str = "auto") -> int:
             bar.step(label)
         bar.finish()
 
-        _section(console, "6. panels and status glyphs")
+        _section(console, "6. scan spinner (one line, redrawn while a commit is scanned)")
+        console.print(spinner.render_line(console, spinner.WORDS[0], 3,
+                                          "scanning 11 staged files", 4.2))
+        console.print("[dim](drawn on stderr, animated, erased when the scan ends; a pipe or an "
+                      "IDE gets nothing)[/]")
+
+        _section(console, "7. a commit that skipped the hook (git commit --no-verify)")
+        terminal.bypass_warning([d for d in decisions if d.action == "block"][:1],
+                                "git reset --soft HEAD~1")
+
+        _section(console, "8. panels and status glyphs")
         console.print(Panel.fit(f"[{theme.ACCENT_BOLD}]ZeroTrace[/] · preview panel",
                                 border_style=theme.ACCENT_STYLE))
         console.print("[green]✓[/] ok   [yellow]![/] warn   [red]✗[/] fail   "

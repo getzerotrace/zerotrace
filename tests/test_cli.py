@@ -159,6 +159,46 @@ def test_internal_errors_fail_closed(repo, monkeypatch, capsys):
     assert "blocking to stay safe" in capsys.readouterr().err
 
 
+class _Terminal(io.StringIO):
+    def isatty(self) -> bool:
+        return True
+
+    encoding = "utf-8"
+
+
+def test_a_scan_on_a_terminal_shows_the_spinner(repo, monkeypatch):
+    from zerotrace.ui.spinner import WORDS
+    screen = _Terminal()
+    monkeypatch.setattr("sys.stderr", screen)
+    write("app.py", "x = 1\nprint(x)\n")
+    git("add", "-A")
+    assert run("run") == 0
+    drawn = screen.getvalue()
+    assert any(word in drawn for word in WORDS)
+    assert "scanning 1 staged file" in drawn
+
+
+def test_a_scan_off_a_terminal_prints_no_spinner(repo, capsys):
+    write("app.py", "x = 1\n")
+    git("add", "-A")
+    assert run("run") == 0
+    captured = capsys.readouterr()
+    assert captured.err == ""
+    assert captured.out == ""
+
+
+def test_the_spinner_is_gone_before_the_findings_are_printed(repo, monkeypatch, capsys):
+    """The report must start on a clean line: the erase sequence comes before anything else."""
+    screen = _Terminal()
+    monkeypatch.setattr("sys.stderr", screen)
+    write("pay.py", f'KEY = "{Fake.stripe_live()}"\n')
+    git("add", "-A")
+    assert run("run") == 1
+    drawn = screen.getvalue()
+    assert drawn.index("\x1b[2K") < drawn.index("commit blocked")
+    assert "stripe-live-key" in capsys.readouterr().out
+
+
 def test_outside_a_repo_the_hook_is_a_no_op(tmp_path, monkeypatch, git_env):
     monkeypatch.chdir(tmp_path)
     from zerotrace import gitutil

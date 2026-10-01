@@ -16,7 +16,7 @@ from rich.console import Console
 from zerotrace.config import Config
 from zerotrace.detectors import Finding
 from zerotrace.policy.engine import Decision
-from zerotrace.ui import glyphs, logo, preview, terminal
+from zerotrace.ui import glyphs, logo, preview, spinner, terminal
 from zerotrace.ui.progress import Bar
 
 _ENCODINGS = ["utf-8", "cp437", "cp1252", "ascii"]
@@ -83,6 +83,27 @@ def test_progress_bar_renders(encoding):
         bar.step(label)
     bar.finish()
     stream.flush()
+
+
+@pytest.mark.parametrize("encoding", _ENCODINGS)
+def test_scan_spinner_line_renders(encoding):
+    console = _console(encoding)
+    console.print(spinner.render_line(console, "Lollygagging", 3, "scanning 11 staged files", 65))
+    out = _rendered(console)
+    assert "Lollygagging" in out
+    assert "scanning 11 staged files" in out
+
+
+@pytest.mark.parametrize("encoding", _ENCODINGS)
+def test_bypass_warning_renders_and_never_shows_a_value(encoding, monkeypatch):
+    console = _console(encoding)
+    monkeypatch.setattr(terminal, "console", console)
+    terminal.bypass_warning(_decisions()[:1], "git reset --soft HEAD~1")
+    out = _rendered(console)
+    assert "skipped the pre-commit scan" in out
+    assert "stripe-live-key" in out
+    assert "git reset --soft HEAD~1" in out
+    assert "sk_live_EXAMPLEEXAMPLEEXAMPLE" not in out
 
 
 @pytest.mark.parametrize("encoding", _ENCODINGS)

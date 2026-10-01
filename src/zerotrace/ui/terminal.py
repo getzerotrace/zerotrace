@@ -151,6 +151,31 @@ def headless_report(decisions, cfg=None) -> None:
         console.print(f"  [green]fix[/] {escape(_fix_hint(decision, cfg))}")
 
 
+def bypass_warning(decisions, undo: str) -> None:
+    """A commit that skipped the pre-commit scan (`git commit --no-verify`) holds blocking
+    findings. Says where they are and how to take the commit back: paths and rule ids, never a
+    value."""
+    decisions = by_priority(decisions)
+    marks = glyphs.for_console(console)
+    plural = "s" if len(decisions) != 1 else ""
+    body = Text()
+    body.append("This commit skipped the pre-commit scan (git commit --no-verify).\n"
+                f"ZeroTrace scanned it anyway, and it holds {len(decisions)} blocking "
+                f"finding{plural}:\n\n")
+    for decision in decisions:
+        f = decision.finding
+        body.append(f"  {marks['bar']} ", style=_SEVERITY_STYLE.get(f.severity, "white").split()[-1])
+        body.append(f"{_where(f)}  ", style="bold")
+        body.append(f"{f.rule_id} ({f.severity})\n", style="dim")
+    body.append("\nThe push will be refused. To take the commit back and keep its changes "
+                "staged:\n\n")
+    body.append(f"  {undo}\n", style="bold")
+    body.append("\nThen fix the finding (`zerotrace review` walks through it) and commit again "
+                "without --no-verify.")
+    console.print(Panel(body, box=glyphs.box_for(console), border_style="red",
+                        title=f"[bold red]ZeroTrace[/] {marks['dot']} pre-commit scan skipped"))
+
+
 def _preview(decision, proposal) -> Panel:
     f = decision.finding
     if proposal.mode in ("unstage", "manual"):

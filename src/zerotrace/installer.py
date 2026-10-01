@@ -36,16 +36,29 @@ HOOK_NAMES = (
     "sendemail-validate",
 )
 
+# The common git dir, usually without starting git: git runs a hook from the top of the work
+# tree, and a plain repository keeps its git dir in .git. A process costs ~0.4 s on a Windows
+# machine with a virus scanner, and every hook of every commit pays for each one.
+_GIT_DIR = """if [ -z "${{GIT_DIR:-}}" ] && [ -d .git ]; then
+  git_dir=.git
+else
+  git_dir=$(git rev-parse --git-common-dir 2>/dev/null) || exit 0
+fi
+"""
+
 _HEADER = """#!/bin/sh
 # Installed by ZeroTrace (`zerotrace install`). Do not edit: re-run install to regenerate.
 ZT_PY={python}
 PREV_HOOKS={prev}
-hook_name=$(basename "$0")
-git_dir=$(git rev-parse --git-common-dir 2>/dev/null) || exit 0
-
+hook_name=${{0##*/}}
+""" + _GIT_DIR + """
 run_chained() {{
-  # 1) the repo's own hook  2) a hooks dir configured before ZeroTrace
-  if [ -x "$git_dir/hooks/$hook_name" ]; then "$git_dir/hooks/$hook_name" "$@" || return $?; fi
+  # 1) the repo's own hook  2) a hooks dir configured before ZeroTrace. A repo made by `git init`
+  # after the install holds ZeroTrace's own template shim as its hook: ZEROTRACE_CHAINED tells it
+  # that this shim runs ZeroTrace, so it must not scan a second time.
+  if [ -x "$git_dir/hooks/$hook_name" ]; then
+    ZEROTRACE_CHAINED=1 "$git_dir/hooks/$hook_name" "$@" || return $?
+  fi
   if [ -n "$PREV_HOOKS" ] && [ -x "$PREV_HOOKS/$hook_name" ]; then "$PREV_HOOKS/$hook_name" "$@" || return $?; fi
   return 0
 }}
@@ -59,9 +72,9 @@ zerotrace() {{
 }}
 """
 
-_PASSTHROUGH = _HEADER + """
-run_chained "$@"
-"""
+_CHAIN = '\nrun_chained "$@"\n'
+
+_PASSTHROUGH = _HEADER + _CHAIN
 
 _PRE_COMMIT = _HEADER + """
 run_chained "$@" || exit $?
@@ -83,13 +96,27 @@ fi
 _PRE_PUSH = _HEADER + """
 input=$(cat)
 if [ -x "$git_dir/hooks/pre-push" ]; then
-  printf '%s\\n' "$input" | "$git_dir/hooks/pre-push" "$@" || exit $?
+  printf '%s\\n' "$input" | ZEROTRACE_CHAINED=1 "$git_dir/hooks/pre-push" "$@" || exit $?
 fi
 if [ -n "$PREV_HOOKS" ] && [ -x "$PREV_HOOKS/pre-push" ]; then
   printf '%s\\n' "$input" | "$PREV_HOOKS/pre-push" "$@" || exit $?
 fi
 printf '%s\\n' "$input" | zerotrace pre-push "$@"
 """
+
+# `git commit --no-verify` skips the pre-commit hook but git still runs post-commit. The pre-commit
+# hook stamps the tree it scanned (bypass.py), so a commit with no stamp skipped the scan and
+# `zerotrace post-commit` looks at it. Every ordinary commit, and every commit a rebase replays,
+# leaves here in a few milliseconds without starting Python.
+_POST_COMMIT_CHECK = """
+tree=$(git rev-parse -q --verify 'HEAD^{{tree}}' 2>/dev/null) || exit 0
+[ -e "$git_dir/zerotrace/verified/$tree" ] && exit 0
+work_git_dir=$(git rev-parse --git-dir 2>/dev/null)
+if [ -d "$work_git_dir/rebase-merge" ] || [ -d "$work_git_dir/rebase-apply" ]; then exit 0; fi
+zerotrace post-commit
+"""
+
+_POST_COMMIT = _HEADER + _CHAIN + _POST_COMMIT_CHECK
 
 # init.templateDir fallback: copied by `git init`/`git clone` into a brand-new .git/hooks, so it
 # only ever runs there directly (never self-referential, unlike the hooksPath shim above), and
@@ -100,7 +127,7 @@ _TPL_HEADER = """#!/bin/sh
 # repos created while it is locally cleared/overridden.
 ZT_PY={python}
 PREV_TEMPLATE_HOOKS={prev}
-hook_name=$(basename "$0")
+hook_name=${{0##*/}}
 
 run_chained() {{
   # a hook that was seeded by a template configured before ZeroTrace
@@ -119,13 +146,16 @@ zerotrace() {{
 }}
 """
 
-_TPL_PASSTHROUGH = _TPL_HEADER + """
-run_chained "$@"
-"""
+# The global shim chains the copy of these that `git init` seeds into .git/hooks, and runs
+# ZeroTrace itself: the copy must not do it a second time (and still runs when git calls it
+# directly, which is the case the fallback exists for).
+_TPL_ONCE = '[ -n "$ZEROTRACE_CHAINED" ] && exit 0\n'
+
+_TPL_PASSTHROUGH = _TPL_HEADER + _CHAIN
 
 _TPL_PRE_COMMIT = _TPL_HEADER + """
 run_chained "$@" || exit $?
-if [ -t 1 ] && {{ : </dev/tty; }} 2>/dev/null; then
+""" + _TPL_ONCE + """if [ -t 1 ] && {{ : </dev/tty; }} 2>/dev/null; then
   zerotrace run --hook </dev/tty
 else
   zerotrace run --hook
@@ -137,8 +167,10 @@ input=$(cat)
 if [ -n "$PREV_TEMPLATE_HOOKS" ] && [ -x "$PREV_TEMPLATE_HOOKS/pre-push" ]; then
   printf '%s\\n' "$input" | "$PREV_TEMPLATE_HOOKS/pre-push" "$@" || exit $?
 fi
-printf '%s\\n' "$input" | zerotrace pre-push "$@"
+""" + _TPL_ONCE + """printf '%s\\n' "$input" | zerotrace pre-push "$@"
 """
+
+_TPL_POST_COMMIT = _TPL_HEADER + _GIT_DIR + _CHAIN + _TPL_ONCE + _POST_COMMIT_CHECK
 
 _REPO_BLOCK = """# >>> zerotrace >>>
 if [ -t 1 ] && {{ : </dev/tty; }} 2>/dev/null; then
@@ -245,7 +277,8 @@ def write_hooks(hooks_dir: str, prev_hooks: str = "", scope: str = "global") -> 
     os.makedirs(hooks_dir, mode=0o755 if scope == "system" else 0o700, exist_ok=True)
     fmt = {"python": _sh_quote(python_path()), "prev": _sh_quote(prev_hooks)}
     for name in HOOK_NAMES:
-        template = {"pre-commit": _PRE_COMMIT, "pre-push": _PRE_PUSH}.get(name, _PASSTHROUGH)
+        template = {"pre-commit": _PRE_COMMIT, "pre-push": _PRE_PUSH,
+                    "post-commit": _POST_COMMIT}.get(name, _PASSTHROUGH)
         _write_script(os.path.join(hooks_dir, name), template.format(**fmt), mode)
     with open(os.path.join(hooks_dir, MARKER), "w", encoding="utf-8") as f:
         f.write("This directory is generated by `zerotrace install`.\n")
@@ -256,7 +289,8 @@ def write_template_hooks(hooks_dir: str, prev_template_hooks: str = "", scope: s
     os.makedirs(hooks_dir, mode=0o755 if scope == "system" else 0o700, exist_ok=True)
     fmt = {"python": _sh_quote(python_path()), "prev": _sh_quote(prev_template_hooks)}
     for name in HOOK_NAMES:
-        template = {"pre-commit": _TPL_PRE_COMMIT, "pre-push": _TPL_PRE_PUSH}.get(name, _TPL_PASSTHROUGH)
+        template = {"pre-commit": _TPL_PRE_COMMIT, "pre-push": _TPL_PRE_PUSH,
+                    "post-commit": _TPL_POST_COMMIT}.get(name, _TPL_PASSTHROUGH)
         _write_script(os.path.join(hooks_dir, name), template.format(**fmt), mode)
     with open(os.path.join(hooks_dir, MARKER), "w", encoding="utf-8") as f:
         f.write("This directory is generated by `zerotrace install` (init.templateDir).\n")

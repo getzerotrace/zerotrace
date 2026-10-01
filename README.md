@@ -129,8 +129,9 @@ staged diff ─► detectors ─► filters ─► policy engine ─► BLOCK / 
 ```
 
 **The design contract.** The model never sees a HIGH or CRITICAL finding and can never unblock
-one. Any error, timeout, bad response or unreachable endpoint fails **closed**. A **pre-push**
-hook re-scans outgoing commits, so a `git commit --no-verify` is still caught before it leaves
+one. Any error, timeout, bad response or unreachable endpoint fails **closed**. A **post-commit**
+hook scans a commit that skipped the pre-commit scan (`git commit --no-verify`) and warns at
+once, and a **pre-push** hook re-scans outgoing commits, so it is still caught before it leaves
 the machine.
 
 Module map and data flow: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.

@@ -22,6 +22,11 @@ hook name, and each shim chains:
    `ZEROTRACE_CHAIN_PRECOMMIT=0`),
 4. ZeroTrace itself, with the terminal reattached so the fix menu works inside `git commit`.
 
+A repository created after the install already holds ZeroTrace's own `init.templateDir` shims in
+`.git/hooks`. The global shim chains them like any repo hook but sets `ZEROTRACE_CHAINED=1`, and
+they then leave the scan to it, so each commit and push is scanned once. Called directly by git
+(the case the template fallback exists for) they scan on their own.
+
 **Known override:** a repo-local `core.hooksPath` (husky v9 sets `.husky/_`) wins over
 global/system. This is a gap in coverage, not an alternative install mode: `zerotrace doctor`
 flags these repos and `zerotrace doctor --fix` patches `.husky/pre-commit` (or the effective

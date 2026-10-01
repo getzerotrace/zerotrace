@@ -142,6 +142,41 @@ PATH through the registry (not `setx`, which truncates a PATH longer than 1024 c
 Homebrew, Debian, Ubuntu and Fedora all refuse `pip install --user` on it. ZeroTrace builds a
 virtualenv it owns, which is also what makes uninstalling exact.
 
+### Where the hooks live
+
+The install points git's `core.hooksPath` at one folder of small shell shims. To find it (or to
+show it in a demo) ask git, which prints the folder it really uses on every OS:
+
+```bash
+git config --global core.hooksPath      # e.g. C:/Users/<you>/.zerotrace/hooks
+zerotrace doctor                        # the "global hooksPath" row, and whether ZeroTrace owns it
+```
+
+| Install | Windows | macOS | Linux |
+| --- | --- | --- | --- |
+| `zerotrace install --global` (default, this user) | `%USERPROFILE%\.zerotrace\hooks` | `~/.zerotrace/hooks` | `~/.zerotrace/hooks` |
+| `zerotrace install --system` (every user, MDM/IT) | `%ProgramData%\zerotrace\hooks` | `/usr/local/share/zerotrace/hooks` | `/usr/local/share/zerotrace/hooks` |
+
+`ZEROTRACE_HOME` moves the per-user base (`$ZEROTRACE_HOME/hooks`) and `--hooks-dir` names the
+folder outright. Open it from a terminal:
+
+```powershell
+explorer ((git config --global core.hooksPath) -replace '/', '\')     # Windows
+```
+
+```bash
+open "$(git config --global core.hooksPath)"               # macOS
+xdg-open "$(git config --global core.hooksPath)"           # Linux
+```
+
+Inside are 16 shims, one per git hook name, and a `.zerotrace-managed` marker. Three do work:
+`pre-commit` (scans the staged diff), `post-commit` (notices a `--no-verify` commit) and
+`pre-push` (re-scans what is about to leave the machine); the rest only chain the repo's own
+hooks. `<hooks>/../template/hooks` holds the same shims as an `init.templateDir` fallback for new
+repositories. Per-repository state (audit log, exceptions, verdict cache, scan stamps) lives in
+`<repo>/.git/zerotrace/`, never in the work tree. The shims are regenerated, not edited: re-run
+`zerotrace install --global` after upgrading.
+
 ### Options
 
 | Option               | What it is for                                                         |

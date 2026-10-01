@@ -20,7 +20,7 @@ and the tool's own integrity (it runs on every commit).
 | **Supply-chain of the hook itself** | Hash-locked deps (`uv.lock` with hashes), signed release tags, minimal dependency set, no network at runtime. |
 | **Audit tampering** | Append-only log; each entry carries `prev_hash` (hash chain) for tamper-evidence. Stores fingerprints, never values. |
 | **False negatives** | Multiple independent layers (regex + entropy + keyword + NER) rather than one method. |
-| **Bypass** (`--no-verify`) | The pre-push hook re-scans every outgoing commit (deterministic). Real enforcement remains server-side (push protection / CI `zerotrace scan --range`). |
+| **Bypass** (`--no-verify`) | Git skips the pre-commit hook but not post-commit: the hook stamps every tree it scans, so the post-commit shim scans a commit that has no stamp and warns (deterministic, audit-logged) - it cannot refuse, git ignores that hook's status. The pre-push hook then re-scans every outgoing commit and blocks. Real enforcement remains server-side (push protection / CI `zerotrace scan --range`), because `git push --no-verify` skips the last client hook. |
 | **Hook tampering / removal** | Missing interpreter -> hook fails closed with a message; `doctor` reports unprotected repos (e.g. husky overrides); `--system` install + locked org policy for managed fleets. |
 
 ## Explicit non-goals

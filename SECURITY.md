@@ -22,6 +22,8 @@ anything exploitable. We aim to acknowledge within 3 business days.
   `.zerotrace.yml` (`zerotrace doctor --pin-model`); on mismatch the model is not used.
 
 ## Non-guarantees (be honest)
-- A client-side hook can be bypassed (`git commit --no-verify`, direct plumbing).
+- A client-side hook can be bypassed (`git commit --no-verify`, direct plumbing). ZeroTrace warns
+  about a `--no-verify` commit as soon as it is made (post-commit) and blocks it at the push, but
+  `git push --no-verify` skips that last client hook: server-side scanning is the real boundary.
 - A 3B local model is **not** a security boundary and can be wrong both ways.
 - Detection is best-effort; this is not a compliance certification.

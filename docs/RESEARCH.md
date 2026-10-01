@@ -117,7 +117,7 @@ policy engine, a bounded local AI that never sees the value, and a fix rather th
 | 6  | Bootstrap token for the vault itself in a Dockerfile `ENV`                | The secret-zero gap⁵            | Blocks; suggests build secrets/runtime env           |
 | 7  | RPA/UiPath credentials committed for a bot to read                         | Yes, but bypassed                | Blocks; points to Orchestrator credential assets     |
 | 8  | AI agent writes a key into code and commits it                             | Vault unaware                    | Same hook, no extra setup (agents use git)           |
-| 9  | Developer bypasses with `--no-verify`                                     | —                               | Pre-push hook catches it before it leaves the laptop |
+| 9  | Developer bypasses with `--no-verify`                                     | —                               | Post-commit hook warns at once; pre-push hook catches it before it leaves the laptop |
 | 10 | Someone's machine has no ZeroTrace                                         | —                               | CI`zerotrace scan --range` + push protection       |
 
 ## 8. Answering the objection, on stage, in 30 seconds

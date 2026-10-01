@@ -4,6 +4,32 @@ All notable changes documented here, following [Keep a Changelog](https://keepac
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- A scanning spinner. While the pre-commit hook, `zerotrace scan` and the pre-push hook work, one
+  themed line says so - `zerotrace: ⠹ Lollygagging… scanning 11 staged files · 4s` - with a
+  word that changes every couple of seconds, what is being scanned and for how long, so a scan
+  that waits on the local model no longer looks like a hung `git commit`. It is drawn on stderr,
+  erased when the scan ends, and never appears in a pipe, an IDE, CI or `TERM=dumb`.
+  `zerotrace ui` shows it.
+- `git commit --no-verify` no longer passes in silence. Git skips the pre-commit hook for it but
+  not post-commit, so the hook stamps every tree it scans and a new post-commit shim scans any
+  commit without a stamp (deterministic rules only). A blocking finding prints a warning with
+  the exact command that takes the commit back, and is written to the audit log; the pre-push
+  hook still refuses to publish it. Merges and the commits a rebase replays are left alone.
+  Re-run `zerotrace install --global` to refresh the installed shims.
+
+### Fixed
+- Every hook ran twice in a repository created after the install: `git init` seeds the
+  init.templateDir shims into `.git/hooks` and the global shim chained them before running
+  ZeroTrace itself, so each commit and push was scanned two times. The global shim now marks the
+  hooks it chains and the seeded copies leave ZeroTrace to it (they still run when git calls
+  them directly, and still chain a hook from the previous template).
+- Hook shims no longer start `basename`, and no longer start `git rev-parse` when the git dir is
+  plainly `.git`. Each process costs about 0.4 s on a Windows machine with a virus scanner, and
+  git runs four hooks per commit.
+- `pipeline` (detect-secrets) is imported after the spinner starts instead of before, so the
+  slowest import is no longer a blank screen, and `zerotrace version`, `doctor` and `install`
+  no longer pay for it.
 
 ## [0.3.2] - 2026-09-24
 ### Fixed

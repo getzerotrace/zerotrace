@@ -16,7 +16,7 @@ ambiguous findings, and it only ever sees redacted features.
 
 ```
 git commit ─► global core.hooksPath shim (chains repo/previous hooks, reattaches /dev/tty)
-   └─► zerotrace run --hook
+   └─► zerotrace run --hook           (a spinner on stderr while it works: ui/spinner.py)
         1. collectors/staged_diff.py      staged diff -> added lines + window (also: a commit, a tree)
         2. detectors/
              sensitive_files.py           .env, keys, keystores, tfstate, kubeconfig (whole file)
@@ -33,6 +33,9 @@ git commit ─► global core.hooksPath shim (chains repo/previous hooks, reatta
            ui/tui*.py (zerotrace review) the same fixes full-screen; tui_common.py is the shared frame
         7. remediation/applier.py         patch the INDEX blob; mirror to work tree if identical
         8. audit/                         hash-chained log + exceptions in .git/zerotrace/
+        9. bypass.py                      a clean scan stamps the tree it cleared (see below)
+git commit --no-verify ─► post-commit shim ─► no stamp for HEAD's tree ─► zerotrace post-commit
+                                              (deterministic scan of that commit, warns, audit-logs)
 git push ─► pre-push shim ─► zerotrace pre-push   (every outgoing commit, deterministic only)
 
 agent/tool payload ─► zerotrace gateway
@@ -53,6 +56,11 @@ line with a secret.
 
 ## Module map
 - `installer.py`: global/system/repo install, hook shims, chaining, uninstall/restore.
+- `bypass.py`: the stamps that tell a commit the pre-commit hook scanned from one that skipped it
+  (`git commit --no-verify`), read by the post-commit shim in shell so ordinary commits never
+  start Python for it.
+- `ui/spinner.py`: the one-line "still working" indicator (`rich` `Live` on stderr, transient,
+  silent off a terminal); `ui/progress.py` is the install bar.
 - `platform_env.py`: detects Windows/macOS/Linux/WSL1/WSL2 and classifies a repo path as
   native, DrvFs (`/mnt/<drive>`) or a `\\wsl$\` UNC path; `installer.py` and `doctor.py` both
   call it so they never disagree about where they're running.

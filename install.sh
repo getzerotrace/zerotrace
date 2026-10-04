@@ -64,6 +64,7 @@ PULL_MODEL=1
 ASCII_FORCED=0
 VERBOSE=0
 SELFTEST=0
+UPDATING=0      # ZeroTrace is already here: an update has no logo and no progress bar
 PURGE=0
 [ -n "${ZEROTRACE_ASCII:-}" ] && ASCII_FORCED=1
 
@@ -352,7 +353,7 @@ measure_cols() {
 COLS=$(measure_cols)
 BAR_FRAME=0
 
-bar_on() { [ "$TTY" = 1 ] && [ "$VERBOSE" = 0 ]; }
+bar_on() { [ "$TTY" = 1 ] && [ "$VERBOSE" = 0 ] && [ "$UPDATING" = 0 ]; }
 
 bar_draw() {
   bar_on || return 0
@@ -570,7 +571,12 @@ if [ "$UNINSTALL" = 1 ]; then
   exit 0
 fi
 
-banner
+if [ "$SELFTEST" = 0 ]; then
+  for existing in "$VENV_DIR/bin/python" "$VENV_DIR/Scripts/python.exe"; do
+    if [ -x "$existing" ] && "$existing" -c 'import zerotrace' >/dev/null 2>&1; then UPDATING=1; break; fi
+  done
+fi
+if [ "$UPDATING" = 1 ]; then say "ZeroTrace is already installed; updating it."; else banner; fi
 
 if [ "$SELFTEST" = 1 ]; then
   step "Checking this machine"
@@ -954,6 +960,7 @@ export PATH
 bar_clear
 SETUP_ARGS=(setup --step-offset "$STEP_NO" --steps "$TOTAL_STEPS")
 [ "$PULL_MODEL" = 0 ] && SETUP_ARGS+=(--no-model)
+[ "$UPDATING" = 1 ] && SETUP_ARGS+=(--update)
 set +e
 "$VENV_PY" -m zerotrace "${SETUP_ARGS[@]}"
 SETUP_CODE=$?

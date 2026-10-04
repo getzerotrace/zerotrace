@@ -164,8 +164,11 @@ def _quiet(args: list[str], env: dict) -> None:
 # --- the run ------------------------------------------------------------------------------
 
 def run(scope: str = "global", pull_model: bool = True, step_offset: int = 0,
-        total_steps: int = 0, quiet: bool = False, file=None) -> Outcome:
-    """Do the guided half of an install and report it. Never raises for a missing Docker."""
+        total_steps: int = 0, quiet: bool = False, file=None, update: bool = False) -> Outcome:
+    """Do the guided half of an install and report it. Never raises for a missing Docker.
+
+    `update` is an install over one that was already there: lines instead of a bar, and one
+    line of result instead of the welcome - the logo and the bar are for arriving."""
     from rich.console import Console
 
     from .ui.progress import Bar
@@ -175,7 +178,7 @@ def run(scope: str = "global", pull_model: bool = True, step_offset: int = 0,
     cfg = load_config()
     outcome = Outcome()
     total = total_steps or len(STEPS)
-    bar = Bar(total, file=stream, console=console)
+    bar = Bar(total, file=stream, console=console, plain=update)
     bar.done = step_offset
 
     def step(label: str) -> None:
@@ -204,8 +207,16 @@ def run(scope: str = "global", pull_model: bool = True, step_offset: int = 0,
     outcome.guardrail_ok = hooks_ok and _validate(outcome, scope)
     bar.finish()
     if not quiet:
-        _print(console, outcome)
+        (_print_update if update else _print)(console, outcome)
     return outcome
+
+
+def _print_update(console, outcome: Outcome) -> None:
+    if not outcome.guardrail_ok:
+        _print(console, outcome)        # a failure keeps its table: the reason is in it
+        return
+    console.print(f"[{theme.ACCENT_BOLD}]ZeroTrace {__version__}[/] is updated and protecting "
+                  "every repo on this machine.", highlight=False)
 
 
 def _print(console, outcome: Outcome) -> None:

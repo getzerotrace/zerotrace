@@ -72,6 +72,13 @@ rules:
 The layer order is built-in defaults ← org policy ← `~/.zerotrace/config.yml` ← repo
 `.zerotrace.yml`, and org-locked keys win. A `critical` finding can never be configured to pass.
 
+**Updates.** ZeroTrace mentions a newer release in a terminal, and `zerotrace update` installs
+it ([INSTALL.md](INSTALL.md#updating)). A fleet that rolls out a tested version does not want
+laptops announcing - or moving to - a release nobody has piloted: set `updates: {check: false}`
+in the org policy and lock `updates.check` (the example policy does), then move the fleet by
+changing the pinned version in the MDM package. With the key locked off, `zerotrace update`
+declines to run and nothing looks anything up.
+
 ## 4. The model tier
 
 | Tier | When | Notes |

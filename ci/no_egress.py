@@ -4,6 +4,9 @@ ZeroTrace promises that detection never talks to the network and that the model 
 ever reaches its configured endpoint. This turns that promise into a build gate:
 
     python ci/no_egress.py -m pytest -q
+
+The other thing that opens a socket, the update check (`zerotrace/updates.py`), is switched off
+for every test by tests/conftest.py; its own tests run it against a mirror on loopback.
 """
 import runpy
 import socket

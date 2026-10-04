@@ -35,12 +35,16 @@ class Bar:
     """Call .step(label) once per completed unit of work, .log(line) to print above the bar,
     then .finish()."""
 
-    def __init__(self, total: int, file: IO[str] | None = None, console: Console | None = None):
+    def __init__(self, total: int, file: IO[str] | None = None, console: Console | None = None,
+                 plain: bool = False, quiet: bool = False):
         self.total = max(total, 1)
         self.done = 0
         self.file = file or sys.stdout
         self.console = console or Console(file=self.file)
-        self.tty = bool(getattr(self.file, "isatty", lambda: False)())
+        # `plain` is a terminal that gets lines instead of a bar, `quiet` one that gets nothing
+        # for the steps: what an update says when ZeroTrace was already here.
+        self.quiet = quiet
+        self.tty = not (plain or quiet) and bool(getattr(self.file, "isatty", lambda: False)())
         self.unicode = self.tty and capability.supports_unicode(self.console)
         self.colour = self.tty and capability.decorations_allowed() \
             and self.console.color_system is not None
@@ -118,7 +122,7 @@ class Bar:
         self.label = label
         if self.tty:
             self.draw()
-        else:
+        elif not self.quiet:
             self.file.write(f"zerotrace: [{self.done}/{self.total}] {label}\n")
             self.file.flush()
 

@@ -7,7 +7,7 @@ import re
 import sys
 import time
 
-from . import __version__, bypass, gitutil
+from . import __version__, bypass, gitutil, updates
 from .audit import log as audit_log
 from .audit.fingerprint import of_finding
 from .collectors import staged_diff
@@ -15,7 +15,7 @@ from .config import load_config
 
 COMMANDS = ("run", "review", "scan", "pre-push", "post-commit", "init", "install", "uninstall",
             "setup", "model", "doctor", "ui", "exceptions",
-            "eval", "gateway", "version")
+            "eval", "gateway", "update", "version")
 _MAX_PUSH_COMMITS = 300
 _SHA_RE = re.compile(r"\A[0-9a-f]{40,64}\Z")
 # What an internal error means for the commands that do not block (post-commit cannot).
@@ -382,10 +382,11 @@ def install_cmd(args) -> int:
     from .ui.terminal import banner
     scope = "system" if args.system else "global"
     # The logo and name mark the moment ZeroTrace arrives on a machine, and nothing else:
-    # a re-install, a blocked commit, a scan or a push prints only what happened.
-    if _first_install(scope):
+    # a re-install, a blocked commit, a scan or a push prints only what happened - and no bar.
+    first = _first_install(scope)
+    if first:
         banner()
-    bar = Bar(len(installer.INSTALL_STEPS))
+    bar = Bar(len(installer.INSTALL_STEPS), quiet=not first)
     try:
         lines = installer.install(scope, args.hooks_dir, on_step=bar.step)
     except (PermissionError, gitutil.GitError) as exc:
@@ -410,9 +411,10 @@ def uninstall_cmd(args) -> int:
 
 def setup_cmd(args) -> int:
     from . import setup as guided
-    outcome = guided.run(scope="system" if args.system else "global",
-                         pull_model=not args.no_model,
-                         step_offset=args.step_offset, total_steps=args.steps)
+    scope = "system" if args.system else "global"
+    outcome = guided.run(scope=scope, pull_model=not args.no_model,
+                         step_offset=args.step_offset, total_steps=args.steps,
+                         update=args.update or not _first_install(scope))
     return outcome.code
 
 
@@ -494,6 +496,18 @@ def eval_cmd(args) -> int:
     return run_eval(args.cases, args.model or [], args.runs)
 
 
+def update_cmd(args) -> int:
+    """Install the latest release, or with --check only say whether there is one."""
+    cfg = load_config()
+    return updates.update_command(check_only=args.check,
+                                  locked_off="updates.check" in cfg.locked and not cfg.update_check)
+
+
+def version_cmd(args) -> int:
+    print(f"zerotrace {__version__}")
+    return 0
+
+
 def gateway_cmd(args) -> int:
     """Sanitize an AI-agent/MCP-tool/RAG payload read from stdin."""
     from .gateway import sanitize
@@ -561,6 +575,7 @@ def _parser() -> argparse.ArgumentParser:
     # step list this run lands; nobody types these.
     st.add_argument("--step-offset", type=int, default=0, help=argparse.SUPPRESS)
     st.add_argument("--steps", type=int, default=0, help=argparse.SUPPRESS)
+    st.add_argument("--update", action="store_true", help=argparse.SUPPRESS)
 
     m = sub.add_parser("model", help="the local model container: status, up, down")
     m_sub = m.add_subparsers(dest="model_command")
@@ -601,6 +616,10 @@ def _parser() -> argparse.ArgumentParser:
     gw = sub.add_parser("gateway", help="sanitize an AI-agent/MCP-tool/RAG payload from stdin")
     gw.add_argument("--format", choices=["text", "json"], default="text")
 
+    up = sub.add_parser("update", help="upgrade ZeroTrace to the latest release")
+    up.add_argument("--check", action="store_true",
+                    help="only say whether a newer release exists; install nothing")
+
     sub.add_parser("version", help="print version")
     return p
 
@@ -635,9 +654,6 @@ def main(argv: list[str] | None = None) -> None:
     argv = _with_default_command(sys.argv[1:] if argv is None else list(argv))
     args = _parser().parse_args(argv)
 
-    if args.command == "version":
-        print(f"zerotrace {__version__}")
-        raise SystemExit(0)
     repo_commands = {"run", "review", "scan", "pre-push", "post-commit", "init", "exceptions"}
     if args.command in repo_commands:
         _enter_repo(args.command)
@@ -649,7 +665,10 @@ def main(argv: list[str] | None = None) -> None:
         "model": model_cmd, "doctor": doctor_cmd, "ui": ui_cmd,
         "exceptions": exceptions_cmd,
         "eval": eval_cmd, "gateway": gateway_cmd,
+        "update": update_cmd, "version": version_cmd,
     }
+    notifier = updates.Notifier(args.command)
+    notifier.begin()
     try:
         code = handlers[args.command](args)
     except (KeyboardInterrupt, EOFError):       # Ctrl+C, or Ctrl+D / a closed stdin at a prompt
@@ -661,4 +680,5 @@ def main(argv: list[str] | None = None) -> None:
         outcome = _INTERNAL_ERROR.get(args.command, "blocking to stay safe")
         print(f"zerotrace: internal error, {outcome}: {exc!r}", file=sys.stderr)
         code = 1
+    notifier.end(code)
     raise SystemExit(code)

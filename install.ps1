@@ -245,8 +245,11 @@ $script:Pct = 0
 $script:StepNo = 0
 $script:BarLabel = ""
 $script:BarOn = $false
+# True when ZeroTrace is already here: that is an update, and the logo and the progress bar are
+# for the moment it first arrives.
+$script:Updating = $false
 
-function Use-Bar { return ($script:Vt -and -not $Plain) }
+function Use-Bar { return ($script:Vt -and -not $Plain -and -not $script:Updating) }
 
 function Get-ConsoleWidth {
     try { if ($Host.UI.RawUI.WindowSize.Width -gt 0) { return $Host.UI.RawUI.WindowSize.Width } }
@@ -513,11 +516,15 @@ if ($Uninstall) {
     exit 0
 }
 
-Write-Banner
+$existingPy = Join-Path $VenvDir "Scripts\python.exe"
+if (Test-Path $existingPy) {
+    Invoke-Native { & $existingPy -c "import zerotrace" 2>&1 | Out-Null }
+    if ($LASTEXITCODE -eq 0) { $script:Updating = $true }
+}
+if ($script:Updating) { Write-Host "ZeroTrace is already installed; updating it." } else { Write-Banner }
 
 # --- 1. this machine ---------------------------------------------------------------------------
 Write-Step "Checking this machine"
-
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Stop-Install "git is required (ZeroTrace protects git repos): https://git-scm.com/download/win"
 }
@@ -732,7 +739,10 @@ if ($Extras -like "*pii-ner*") {
 }
 
 if (Test-Path "$VenvDir.old") { Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$VenvDir.old" }
+$checkWas = $env:ZEROTRACE_NO_UPDATE_CHECK
+$env:ZEROTRACE_NO_UPDATE_CHECK = "1"      # the version just installed is not the place for "an update is available"
 $installedVersion = (Invoke-Native { & $venvPy -m zerotrace version }) -join " "
+$env:ZEROTRACE_NO_UPDATE_CHECK = $checkWas
 Write-Ok $installedVersion
 
 # --- the launchers ---------------------------------------------------------------------------
@@ -844,6 +854,7 @@ $env:Path = "$BinDir;$env:Path"
 Clear-Bar
 $setupArgs = @("setup", "--step-offset", "$($script:StepNo)", "--steps", "$TotalSteps")
 if ($NoModel) { $setupArgs += "--no-model" }
+if ($script:Updating) { $setupArgs += "--update" }
 Invoke-Native { & $venvPy -m zerotrace @setupArgs }
 $setupCode = $LASTEXITCODE
 Restore-Console
@@ -855,5 +866,7 @@ if ($setupCode -ne 0) {
 }
 
 Write-Host ""
-Write-Host "  $Arrow open a new terminal (or run ```$env:Path = `"$BinDir;`$env:Path`"``) to use zerotrace here."
-Write-Host ""
+if (-not $script:Updating) {
+    Write-Host "  $Arrow open a new terminal (or run ```$env:Path = `"$BinDir;`$env:Path`"``) to use zerotrace here."
+    Write-Host ""
+}

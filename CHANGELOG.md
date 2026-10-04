@@ -4,6 +4,37 @@ All notable changes documented here, following [Keep a Changelog](https://keepac
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- An update notice. After a command that succeeded, in a terminal, a newer release is mentioned
+  in one line - `zerotrace: update available 0.4.0 → 0.5.0 · run zerotrace update`. The commit
+  hook says so at most once a day for a given release; `version`, `scan`, `init`, `model`,
+  `exceptions` and `ui` say so every time, and `zerotrace doctor` has an `update` row that warns
+  when one is out. The lookup is one `HEAD` request a day to the release page, made on a daemon
+  thread beside the command so a hook waits for it for a second at the very most, with the answer
+  kept in `~/.zerotrace/update-check.json`. It carries a user agent and nothing from the machine,
+  a repo or a finding, accepts https only, is skipped in CI and whenever stderr is not a
+  terminal, and can neither fail a commit nor change its exit status.
+- `zerotrace update` installs the latest release by running the installer attached to it, after
+  checking that installer against the release's `SHA256SUMS`. The installer then does what it
+  always does: it verifies the wheel and every dependency, replaces the environment only if the
+  new one works, re-registers the hooks and runs the self-test. The model is left alone and the
+  NER extra is kept. On Windows the installer starts in a PowerShell of its own that waits for
+  the command to exit, because Windows will not replace an environment a running program lives
+  in. `--check` only reports. A copy the installer did not make (pipx, pip, the single-file
+  binary, a source checkout) is told how to update instead of being replaced.
+- `updates.check` in config (default `true`), `ZEROTRACE_NO_UPDATE_CHECK=1` and
+  `NO_UPDATE_NOTIFIER=1` turn the lookup and the notice off. An org policy can lock the key off,
+  after which `zerotrace update` declines to run (`deploy/policy.example.yml` shows it).
+  `ZEROTRACE_REPO_URL`, the variable both installers already read, points the lookup and the
+  update at a fork or an internal mirror. What leaves the machine is described in
+  `docs/INSTALL.md`, `docs/THREAT_MODEL.md` and `SECURITY.md`.
+
+### Changed
+- An update no longer looks like a new install. When ZeroTrace is already installed, `install.sh`
+  and `install.ps1` (so `zerotrace update`, and running the installer again) print one line
+  instead of the logo, plain step lines instead of the progress bar, and one line of result
+  instead of the welcome; a table appears only if something failed. `zerotrace install --global`
+  over an existing install draws no bar either. The logo and the bar mark the first arrival.
 
 ## [0.4.0] - 2026-10-01
 ### Added

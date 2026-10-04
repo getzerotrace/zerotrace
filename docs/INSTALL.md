@@ -55,6 +55,60 @@ Fleet rollouts do not use the short URL. `deploy/jamf-postinstall.sh` and
 installs the version that was tested and does not change under the fleet because a release
 happened this morning.
 
+### Updating
+
+```bash
+zerotrace update            # install the latest release
+zerotrace update --check    # only say whether there is one
+```
+
+`zerotrace update` is the installer run again, not a second way of installing. It fetches
+`install.sh` (`install.ps1` on Windows) from the latest release together with that release's
+`SHA256SUMS`, refuses to run it unless the two agree, and runs it with `--version vX.Y.Z` so
+that it installs exactly the release it just verified. The installer then does what it always
+does: it checks the wheel and every dependency against the same file, builds the new
+environment beside the old one and puts the old one back if anything fails, re-registers the
+hooks and runs the self-test that proves a staged secret is refused. The model and its weights
+are not touched (`--no-model`), the NER extra is kept if it was installed, and your config,
+exceptions and audit log live outside the environment, so they stay.
+
+The logo and the progress bar mark ZeroTrace arriving on a machine, so an update does not draw
+them: when the installer finds ZeroTrace already installed (running it again does too, not only
+`update`) it prints one line, plain step lines instead of the bar, and one line of result
+instead of the welcome. A table appears only if something did not work.
+
+- **Windows.** Windows will not replace an environment while a program inside it is running, and
+  `zerotrace update` is such a program. The command starts the installer in a PowerShell of its
+  own - in a new window when you ran it from a terminal - which waits for the command to exit
+  and then runs. The log is `%USERPROFILE%\.zerotrace\install.log`.
+- **A copy the installer did not make** (pipx, pip, the single-file binary, a source checkout)
+  is not replaced from here, and `update` says what to do instead: `pipx upgrade zerotrace` for
+  a pipx copy, the release page for the binary, `git pull` and the checkout's installer for a
+  clone, or the one-liner above, which builds an environment of its own.
+- **Ahead of you, not behind.** A copy newer than the latest release (a build from `main`) is
+  reported as up to date and is never "downgraded".
+
+**The notice.** After a command that succeeded, in a terminal, a newer release is mentioned in
+one line (`zerotrace: update available 0.4.0 → 0.5.0 · run zerotrace update`). The lookup is a
+single `HEAD` request to `<repository>/releases/latest`, which GitHub answers with a redirect that
+names the newest tag - no token, no API rate limit - made at most once a day, beside the command
+rather than in front of it, with the answer kept in `~/.zerotrace/update-check.json`. It carries
+a user agent of `zerotrace/<version>` and nothing else: no repository, path, user name or finding.
+Detection itself still never touches the network. Only `https` is accepted (plain `http` only to
+this machine, for a local mirror), and `ZEROTRACE_REPO_URL` - the variable both installers read -
+points the lookup, and `update`, at a fork or an internal mirror.
+
+| To turn it off | Effect |
+| --- | --- |
+| `ZEROTRACE_NO_UPDATE_CHECK=1` | no lookup, no notice (`NO_UPDATE_NOTIFIER=1` does the same) |
+| `CI` set to anything but `0`/`false` | the same: a CI run never looks |
+| `updates: {check: false}` in `~/.zerotrace/config.yml` or a repo's `.zerotrace.yml` | the same, for that user or repo |
+| `updates.check` locked off in the [org policy](POLICY.md) | cannot be overridden, and `zerotrace update` declines to run |
+
+A fleet that pins the installed version (`ZEROTRACE_VERSION`, above) should lock the key off, so
+a laptop neither nags nor moves off the version that was tested; `deploy/policy.example.yml`
+shows the line.
+
 # Supported platforms
 
 Versions below were verified against primary sources (Wikipedia release history pages,

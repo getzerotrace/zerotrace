@@ -171,3 +171,22 @@ def test_log_on_a_non_tty_just_prints():
     bar = Bar(2, file=out)
     bar.log("plain line")
     assert out.getvalue() == "plain line\n"
+
+
+# --- not an arrival: an update or a re-install ---------------------------------------------
+
+def test_plain_gets_step_lines_even_on_a_terminal():
+    out = _FakeTTY()
+    bar = Bar(2, file=out, console=_console(out), plain=True)
+    bar.step("first")
+    bar.finish()
+    assert out.getvalue() == "zerotrace: [1/2] first\n"
+
+
+def test_quiet_says_nothing_for_the_steps_but_still_logs():
+    out = _FakeTTY()
+    bar = Bar(2, file=out, console=_console(out), quiet=True)
+    bar.step("first")
+    bar.log("what happened")
+    bar.finish()
+    assert out.getvalue() == "what happened\n"

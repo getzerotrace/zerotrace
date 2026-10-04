@@ -68,6 +68,7 @@ class Config:
     exceptions_ttl_days: int = 30
     rules_extra: tuple[str, ...] = ()
     vault_scheme: str = ""                 # e.g. "vault://secret/data/{repo}#{name}"
+    update_check: bool = True              # the daily "is there a newer release" lookup and notice
     repo_root: str = ""
     sources: tuple[str, ...] = ()
     locked: tuple[str, ...] = ()
@@ -210,6 +211,7 @@ def load_config(path: str | None = None) -> "Config":
     raw, sources, locked = _layers(path or os.path.join(root, ".zerotrace.yml"))
     exceptions = raw.get("exceptions") or {}
     rules = raw.get("rules") or {}
+    updates = raw.get("updates") or {}
     return Config(
         enabled=bool(raw.get("enabled", True)),
         **_model_config(raw.get("model") or {}, locked),
@@ -217,6 +219,7 @@ def load_config(path: str | None = None) -> "Config":
         exceptions_ttl_days=int(exceptions.get("ttl_days", 30)),
         rules_extra=tuple(str(p) for p in (rules.get("extra") or [])),
         vault_scheme=str((raw.get("vault") or {}).get("scheme", "")),
+        update_check=bool(updates.get("check", True)),
         repo_root=root,
         sources=tuple(sources),
         locked=tuple(locked),

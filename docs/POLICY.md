@@ -22,3 +22,8 @@ Modifiers:
   fingerprints only, never values, and `zerotrace exceptions --prune` drops expired entries.
 - **`.secrets.baseline`** (hashed) suppresses reviewed pre-existing values for every detector.
 - `critical` is always in `block_severity`, and org policy can lock the rest.
+- **`updates.check`** (default `true`) is the daily lookup for a newer release and the one-line
+  notice it feeds ([docs/INSTALL.md](INSTALL.md#updating)). A user or a repo can set it to
+  `false` for themselves; an organisation that owns the installed version locks it off
+  (`locked: [updates.check]` with `updates: {check: false}`), after which it cannot be turned
+  back on below the org layer and `zerotrace update` declines to run.

@@ -65,6 +65,13 @@ line with a secret.
   native, DrvFs (`/mnt/<drive>`) or a `\\wsl$\` UNC path; `installer.py` and `doctor.py` both
   call it so they never disagree about where they're running.
 - `config.py`: layered config (defaults ← org ← user ← repo) with org-locked keys.
+- `updates.py`: knowing that a newer release exists, and moving to it. A `Notifier` wraps each
+  command: a daemon thread does the daily lookup (one `HEAD` to `/releases/latest`, the answer
+  kept in `~/.zerotrace/update-check.json`) beside the command, and one line is printed after it
+  when stderr is a terminal. `zerotrace update` fetches the release's installer, verifies it
+  against that release's `SHA256SUMS` and runs it (on Windows from a PowerShell of its own, which
+  waits for the command to exit). It is the only module besides the model client that opens a
+  socket, and nothing in it sits in the detection path.
 - `collectors/`: diff → `Unit(path, file_class, line_no, text, window, rev)` + `Changeset`.
 - `detectors/`: each returns `Finding(rule_id, kind, severity, confidence, …)`. Detectors
   never decide policy.

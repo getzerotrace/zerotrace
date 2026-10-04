@@ -10,9 +10,15 @@
 # `critical` finding or a redirected model endpoint can never be configured away by a repo
 # or a developer. See docs/DEPLOYMENT.md §3.
 
-locked: [enabled, policy.block_severity, model.endpoint, model.allow_remote]
+locked: [enabled, policy.block_severity, model.endpoint, model.allow_remote, updates.check]
 
 enabled: true
+
+# A fleet that pins the installed version (see docs/DEPLOYMENT.md) turns the update notice off
+# and locks it: laptops neither mention newer releases nor move off the tested one, and
+# `zerotrace update` declines to run. Drop `updates.check` from `locked` to let people decide.
+updates:
+  check: false
 
 policy:
   block_severity: [critical, high]

@@ -102,6 +102,38 @@ def test_the_step_numbers_continue_the_installers_own(sandbox, no_docker):
     assert "[6/6]" in out.getvalue()
 
 
+class _Terminal(io.StringIO):
+    def isatty(self) -> bool:
+        return True
+
+
+def test_an_update_draws_no_bar_and_ends_with_one_line(sandbox, no_docker):
+    """ZeroTrace was already here: the progress bar and the welcome are for arriving."""
+    out = _Terminal()
+    outcome = setup.run(pull_model=False, step_offset=2, total_steps=6, update=True, file=out)
+    printed = out.getvalue()
+    assert outcome.guardrail_ok
+    assert "\r" not in printed
+    assert "█" not in printed
+    assert "zerotrace: [3/6]" in printed
+    assert "is updated and protecting every repo on this machine" in printed
+    assert "zerotrace-uninstall" not in printed
+
+
+def test_an_update_that_did_not_work_still_shows_why(sandbox, no_docker, monkeypatch):
+    monkeypatch.setattr(installer, "is_managed", lambda path: False)
+    out = _Terminal()
+    outcome = setup.run(pull_model=False, update=True, file=out)
+    assert outcome.guardrail_ok is False
+    assert "hooks registered" in out.getvalue()
+
+
+def test_a_first_install_on_a_terminal_still_draws_the_bar(sandbox, no_docker):
+    out = _Terminal()
+    setup.run(pull_model=False, file=out)
+    assert "█" in out.getvalue()
+
+
 def test_running_it_twice_is_not_a_second_install(sandbox, no_docker):
     first = _run(pull_model=False)
     second = _run(pull_model=False)

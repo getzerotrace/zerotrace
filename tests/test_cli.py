@@ -2,6 +2,7 @@
 import io
 import json
 import os
+import sys
 
 import pytest
 
@@ -139,11 +140,47 @@ def test_install_and_uninstall_through_the_cli(git_env, repo, capsys):
     assert "core.hooksPath" in capsys.readouterr().out
 
 
+class _Terminal(io.StringIO):
+    def isatty(self) -> bool:
+        return True
+
+
+def test_reinstalling_draws_no_bar_but_the_first_install_does(git_env, monkeypatch):
+    """The logo and the progress bar mark ZeroTrace arriving on a machine, not being run again."""
+    terminal = _Terminal()
+    monkeypatch.setattr(sys, "stdout", terminal)
+    assert run("install", "--global") == 0
+    first = terminal.getvalue()
+    terminal.seek(0)
+    terminal.truncate()
+    assert run("install", "--global") == 0
+    again = terminal.getvalue()
+    assert "100%" in first
+    assert "%" not in again
+    assert "█" not in again
+    assert "every repo on this machine now runs ZeroTrace" in again
+
+
+@pytest.mark.parametrize(("first_install", "update"), [(True, False), (False, True)])
+def test_setup_by_hand_is_an_update_when_zerotrace_is_already_there(monkeypatch, first_install, update):
+    seen = {}
+
+    def fake_run(**kwargs):
+        seen.update(kwargs)
+        return type("Outcome", (), {"code": 0})()
+
+    monkeypatch.setattr("zerotrace.setup.run", fake_run)
+    monkeypatch.setattr(cli, "_first_install", lambda scope: first_install)
+    assert run("setup", "--no-model") == 0
+    assert seen["update"] is update
+
+
 def test_doctor_reports_an_unreachable_model_without_failing(repo, capsys):
     assert run("doctor") in (0, 1)
     out = capsys.readouterr().out
     assert "model" in out
     assert "rule pack" in out
+    assert "not checking for a newer release" in out
 
 
 def test_doctor_refuses_a_remote_endpoint_that_is_not_opted_in(repo, monkeypatch, capsys):

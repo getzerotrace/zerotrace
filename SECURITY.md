@@ -14,6 +14,12 @@ anything exploitable. We aim to acknowledge within 3 business days.
   verification disabled). The default model endpoint is loopback-only and bypasses proxies.
   An optional remote endpoint (e.g. company-hosted on AWS) must be explicitly allowed, must
   use https, and only ever receives redacted shape features.
+- **One more request, and what is in it.** Once a day, in a terminal, ZeroTrace asks the release
+  page whether a newer version exists (a `HEAD` to `/releases/latest`; https only; a user agent
+  of `zerotrace/<version>`, nothing about you, your repo or a finding). It is off in CI, off with
+  `ZEROTRACE_NO_UPDATE_CHECK=1` or `updates.check: false`, lockable by org policy, and cannot
+  fail a commit or hold one up for more than a second. `zerotrace update` runs the installer of
+  the release it found only after that file matches the release's `SHA256SUMS`.
 - **No plaintext secret persistence.** Nothing writes a raw candidate to disk or
   logs. Baselines and exceptions store salted fingerprints only.
 - **Fail closed.** Scanner crash, model timeout, or unparseable model output ->

@@ -61,6 +61,13 @@ def _clear_git_caches() -> None:
     gitutil._common_dir.cache_clear()
 
 
+@pytest.fixture(autouse=True)
+def _no_update_check(monkeypatch):
+    """No test may look up a release: the update check is the one thing, besides the model
+    client, that opens a socket. The tests of it switch it back on and give it a fake server."""
+    monkeypatch.setenv("ZEROTRACE_NO_UPDATE_CHECK", "1")
+
+
 @pytest.fixture
 def git_env(tmp_path, monkeypatch):
     """Isolate git + ZeroTrace config from the developer's machine."""

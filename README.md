@@ -164,11 +164,19 @@ running" to "the model answers", and `--no-model` skips the step entirely.
 | `zerotrace exceptions [-i]`               | list, promote and revoke exceptions (fingerprints only, never values)                                 |
 | `zerotrace gateway`                       | sanitize an AI-agent / MCP-tool / RAG payload read from stdin                                         |
 | `zerotrace ui [--tier …]`                | render every screen, to check the terminal you will demo from                                         |
+| `zerotrace update [--check]`              | install the latest release (its installer, checked against `SHA256SUMS`), or just say whether there is one |
 
 Three of them open a full-screen app when a terminal and the `tui` extra are there (`review`,
 `doctor -i`, `exceptions -i`): a table on the left, the finding in full on the right, and every
 action reachable by key, by arrows or by mouse. All of it, plus the live demo:
 **[docs/USING.md](docs/USING.md)**.
+
+When a newer release is out, the next command you run in a terminal says so in one line —
+`zerotrace: update available 0.4.0 → 0.5.0 · run zerotrace update` — and `zerotrace update` moves
+you to it with the same installer, checked against that release's `SHA256SUMS`. The lookup is one
+request a day to the release page; it carries nothing about you or your code, never runs in CI or
+from a script, and is off with `ZEROTRACE_NO_UPDATE_CHECK=1` or `updates: {check: false}`
+([docs/INSTALL.md](docs/INSTALL.md#updating)).
 
 ## Docs
 

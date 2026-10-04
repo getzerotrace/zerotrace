@@ -26,9 +26,11 @@ OK, WARN, FAIL = "ok", "warn", "fail"
 _STATUS_STYLE = {"ok": "green", "warn": "yellow", "fail": "red"}
 MODEL_INTEGRITY = "model integrity"
 MODEL_AVAILABLE = "model available"
+MODEL_ENDPOINT = "model endpoint"
 MODEL_WARM_UP = "model warm-up"
 REPO_OVERRIDE = "repo override"
 REPO_PROTECTED = "this repo protected"
+UPDATE = "update"
 
 # What each check means and why it matters, in a sentence or two. The table shows only the
 # result; the full-screen view (`zerotrace doctor -i`) shows this beside it.
@@ -68,8 +70,8 @@ ABOUT = {
     "AI tie-break": "The local model settles only ambiguous (MEDIUM) findings. It sees "
                     "redacted shape features, never a value, and it cannot unblock anything "
                     "severe.",
-    "model endpoint": "Where the tie-break model is served. A remote endpoint needs "
-                      "allow_remote and https.",
+    MODEL_ENDPOINT: "Where the tie-break model is served. A remote endpoint needs "
+                    "allow_remote and https.",
     MODEL_AVAILABLE: "Whether the model answers. When it does not, ambiguous findings warn "
                      "instead of being settled: ZeroTrace fails closed.",
     "docker": "Docker runs the local model container. It is optional: without it the "
@@ -86,6 +88,9 @@ ABOUT = {
     MODEL_INTEGRITY: "The served model's digest, compared with the one pinned in "
                      ".zerotrace.yml, so a swapped or tampered model is noticed.",
     "egress": "What leaves this machine for the model: redacted shape features only.",
+    UPDATE: "Whether a newer ZeroTrace has been released. Looked up at most once a day, with "
+            "one request to the release page and nothing about you or your code; "
+            "`zerotrace update` installs it, ZEROTRACE_NO_UPDATE_CHECK=1 turns the lookup off.",
 }
 
 
@@ -169,23 +174,33 @@ def _check_environment(report: Report) -> None:
         report.add(OK, "environment", env.kind)
 
 
-def _check_install(report: Report) -> None:
+def _whose(managed: bool) -> str:
+    return "ZeroTrace-managed" if managed else "not ZeroTrace"
+
+
+def _check_hooks_path(report: Report) -> None:
     for scope in ("system", "global"):
         value = gitutil.config_get(installer.HOOKS_PATH_KEY, scope)
         if not value:
             report.add(WARN if scope == "global" else OK, f"{scope} hooksPath", "not set")
             continue
         managed = installer.is_managed(value)
-        report.add(OK if managed else WARN, f"{scope} hooksPath",
-                   f"{value} ({'ZeroTrace-managed' if managed else 'not ZeroTrace'})")
+        report.add(OK if managed else WARN, f"{scope} hooksPath", f"{value} ({_whose(managed)})")
 
+
+def _check_template_dir(report: Report) -> None:
     for scope in ("system", "global"):
         value = gitutil.config_get(installer.TEMPLATE_DIR_KEY, scope)
         if not value:
             continue  # optional fallback; absent is fine as long as hooksPath is set
         managed = installer.is_managed(os.path.join(value, "hooks"))
         report.add(OK if managed else WARN, f"{scope} templateDir (fallback)",
-                   f"{value} ({'ZeroTrace-managed' if managed else 'not ZeroTrace'})")
+                   f"{value} ({_whose(managed)})")
+
+
+def _check_install(report: Report) -> None:
+    _check_hooks_path(report)
+    _check_template_dir(report)
 
 
 def _repo_runs_zerotrace(hooks_dir: str) -> bool:
@@ -236,9 +251,9 @@ def _check_endpoint(report: Report, cfg: Config) -> None:
     where = "REMOTE" if cfg.model_is_remote else "local"
     try:
         llm.check_endpoint(cfg)
-        report.add(OK, "model endpoint", f"{cfg.model_runtime} @ {cfg.model_endpoint} ({where})")
+        report.add(OK, MODEL_ENDPOINT, f"{cfg.model_runtime} @ {cfg.model_endpoint} ({where})")
     except llm.EndpointRefused as exc:
-        report.add(FAIL, "model endpoint", str(exc))
+        report.add(FAIL, MODEL_ENDPOINT, str(exc))
 
 
 def _check_integrity(report: Report, cfg: Config, digest: str, pin_model: bool) -> None:
@@ -307,6 +322,20 @@ def _check_model(report: Report, cfg: Config, pin_model: bool, warm: bool) -> No
                "localhost only; proxy env vars bypassed for model calls")
 
 
+def _check_update(report: Report, cfg: Config) -> None:
+    from . import updates
+    where = updates.state(cfg.update_check)
+    if where.kind == "available":
+        report.add(WARN, UPDATE, f"{where.latest} is available (this is {__version__}). "
+                                 "Run `zerotrace update`")
+    elif where.kind == "current":
+        report.add(OK, UPDATE, f"{__version__} is the latest release")
+    elif where.kind == "off":
+        report.add(OK, UPDATE, f"not checking for a newer release ({where.why})")
+    else:
+        report.add(OK, UPDATE, "could not tell whether a newer release exists (offline?)")
+
+
 def collect(pin_model: bool = False, warm: bool = False,
             listener: Callable[[Check], None] | None = None) -> Report:
     """Run every check and return the results, printing nothing.
@@ -323,6 +352,7 @@ def collect(pin_model: bool = False, warm: bool = False,
     cfg = load_config()
     _check_policy(report, cfg)
     _check_model(report, cfg, pin_model, warm)
+    _check_update(report, cfg)
     return report
 
 

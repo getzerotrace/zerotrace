@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from zerotrace import cli
 from zerotrace.ui import logo, theme
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -150,3 +151,27 @@ def test_the_release_version_placeholder_is_where_the_release_job_expects_it():
     release rather than whatever is newest."""
     assert re.search(r'^RELEASE_VERSION=""$', SH.read_text(encoding="utf-8"), re.MULTILINE)
     assert re.search(r'^\$ReleaseVersion = ""$', PS1.read_text(encoding="ascii"), re.MULTILINE)
+
+
+def test_both_installers_keep_the_logo_and_the_bar_for_a_first_install():
+    """ZeroTrace already there means an update: one line, no wordmark, no progress bar."""
+    sh_text = SH.read_text(encoding="utf-8")
+    ps_text = PS1.read_text(encoding="ascii")
+    assert "-c 'import zerotrace'" in sh_text
+    assert '-c "import zerotrace"' in ps_text
+    assert 'then say "ZeroTrace is already installed; updating it."; else banner; fi' in sh_text
+    assert 'Write-Host "ZeroTrace is already installed; updating it." } else { Write-Banner }' in ps_text
+    assert '[ "$UPDATING" = 0 ]' in sh_text, "the bar must be off while updating"
+    assert "-not $script:Updating" in ps_text, "the bar must be off while updating"
+
+
+def test_both_installers_tell_setup_it_is_an_update():
+    """Otherwise `zerotrace setup` would draw its own bar and its own welcome."""
+    assert 'SETUP_ARGS+=(--update)' in SH.read_text(encoding="utf-8")
+    assert '$setupArgs += "--update"' in PS1.read_text(encoding="ascii")
+    assert cli._parser().parse_args(["setup", "--update"]).update is True
+
+
+def test_the_powershell_installer_does_not_announce_updates_inside_an_install():
+    """The version it has just installed is not the place for "an update is available"."""
+    assert '$env:ZEROTRACE_NO_UPDATE_CHECK = "1"' in PS1.read_text(encoding="ascii")

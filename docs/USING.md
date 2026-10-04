@@ -20,6 +20,7 @@ Installing is [docs/INSTALL.md](INSTALL.md); how it is built is
 | `zerotrace gateway` | sanitize an AI-agent / MCP-tool / RAG payload read from stdin |
 | `zerotrace eval` | precision and latency of the AI tie-break on labelled synthetic cases |
 | `zerotrace ui [--tier auto\|unicode\|ascii\|text\|all]` | render every screen, to check the terminal you will demo from |
+| `zerotrace update [--check]` | install the latest release with the installer attached to it, or with `--check` only say whether there is one |
 
 There is exactly one supported install: global, for every repo on the machine. A security
 control that only some repositories have is one that gives a false sense of safety — the repo
@@ -38,6 +39,44 @@ While a scan runs, one line says ZeroTrace is at work - a word that changes ever
 seconds, what is being scanned and for how long - so a slow scan (the local model can take a
 minute or two on a laptop CPU) does not look like a hung `git commit`. It is drawn only on a
 terminal and erased when the scan ends; a pipe, an IDE or CI gets no extra output.
+
+## Staying up to date
+
+When a newer release has been published, a command you run in a terminal ends with one line:
+
+```text
+zerotrace: update available 0.4.0 → 0.5.0 · run zerotrace update
+```
+
+```bash
+zerotrace update --check     # is there a newer release? installs nothing
+zerotrace update             # install it
+```
+
+`update` downloads the installer attached to the latest release, checks it against that
+release's `SHA256SUMS`, and runs it - so an update is the install again, with the same checks of
+the wheel and every dependency, and the hooks are re-registered and the self-test is run again.
+It leaves the model alone and keeps the NER extra if you had it. [docs/INSTALL.md](INSTALL.md#updating)
+has the details, including what it does on Windows and for a copy ZeroTrace did not install itself.
+
+The line comes after a command that succeeded, never in front of it and never from a script: it
+needs stderr to be a terminal and `CI` to be unset. The commit hook mentions a given release at
+most once a day; a command you typed (`zerotrace version`, `scan`, `init`, `model`, `exceptions`,
+`ui`) mentions it every time, and `zerotrace doctor` has an `update` row instead. The lookup
+behind it runs beside the command, at most once a day, and a commit waits for it for at most a
+second, and only if the scan finished before the lookup did.
+
+It is one request to the release page and carries only a user agent (`zerotrace/<version>`) - no
+repository, path, user name or finding. Turn it off for yourself with
+`ZEROTRACE_NO_UPDATE_CHECK=1` (or the usual `NO_UPDATE_NOTIFIER=1`), or in `~/.zerotrace/config.yml`:
+
+```yaml
+updates:
+  check: false
+```
+
+An organisation that owns the installed version locks the same key in its policy
+([docs/POLICY.md](POLICY.md)); `zerotrace update` then declines to run.
 
 ## Fixes, not just failures
 

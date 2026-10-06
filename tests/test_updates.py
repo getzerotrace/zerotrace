@@ -129,6 +129,7 @@ def enabled(tmp_path, monkeypatch):
     for name in ("ZEROTRACE_NO_UPDATE_CHECK", "NO_UPDATE_NOTIFIER", "CI"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr(updates, "__version__", RUNNING)
+    monkeypatch.setattr(updates, "SETTLE_SECONDS", 10.0)    # a loaded runner must not decide what a test sees
     _clear_git_caches()
     yield home
     _clear_git_caches()
